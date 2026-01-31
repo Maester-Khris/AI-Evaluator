@@ -113,6 +113,16 @@ const Messages: React.FC<{ messages: any[] }> = ({ messages }) => {
 
 // 3. The Input Box: Clean, single-line to multi-line floating bar
 const Input: React.FC<{ onSubmit: (val: string) => void }> = ({ onSubmit }) => {
+  const [value, setValue] = React.useState("");
+
+  const handleAction = () => {
+    if (value.trim()) {
+      // CALL THE PROP HERE - This fixes the TS6133 error
+      onSubmit(value.trim()); 
+      setValue("");
+    }
+  };
+
   return (
     /* z-20: Keeps the input on top of scrolling messages.
        bg-gradient: Mask messages as they scroll up. 
@@ -125,7 +135,9 @@ const Input: React.FC<{ onSubmit: (val: string) => void }> = ({ onSubmit }) => {
              className="flex-1 min-h-[44px] max-h-[200px] resize-none bg-transparent border-none text-zinc-100 placeholder:text-zinc-500 focus-visible:ring-0" 
              placeholder="Message AI Evaluator..."
           />
-          <button className="mb-1.5 mr-1.5 w-9 h-9 rounded-xl bg-zinc-100 text-zinc-950 hover:bg-white transition-all flex items-center justify-center">
+          <button 
+            onClick={handleAction}
+            className="mb-1.5 mr-1.5 w-9 h-9 rounded-xl bg-zinc-100 text-zinc-950 hover:bg-white transition-all flex items-center justify-center">
             <ArrowUp size={20} />
           </button>
         </div>
