@@ -1,0 +1,53 @@
+// prisma/schema.prisma
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id            String         @id @default(uuid()) @db.Uuid
+  name          String
+  email         String         @unique
+  password      String         // Hashed
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  conversations Conversation[]
+}
+
+model Conversation {
+  id        String    @id @default(uuid()) @db.Uuid
+  title     String
+  userId    String    @db.Uuid
+  user      User      @relation(fields: [userId], references: [id])
+  messages  Message[]
+  createdAt DateTime  @default(now())
+
+  @@index([id])
+  @@index([title])
+}
+
+model Message {
+  id               String       @id @default(uuid()) @db.Uuid
+  conversationId   String       @db.Uuid
+  conversation     Conversation @relation(fields: [conversationId], references: [id])
+  
+  // Storing as JsonB allows for metadata like code language or block types
+  content          Json         @db.JsonB 
+  
+  sender           String       // "user" | "assistant"
+  
+  // Evaluation fields
+  rating           Int?         // user rating (e.g. 1-5)
+  evaluationAt     DateTime?    
+  evaluationComment String?     @db.Text
+
+  createdAt        DateTime     @default(now())
+
+  @@index([id])
+  // Note: Standard indexes on JsonB/Full Text require GIN/GIST in Postgres
+  @@index([createdAt])
+}

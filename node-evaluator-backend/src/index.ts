@@ -2,6 +2,11 @@ import express from 'express';
 import type { Request, Response, NextFunction } from 'express';
 import dotenv from 'dotenv';
 import cors from 'cors';
+import { PrismaClient } from '@prisma/client/extension';
+
+export const prisma = new PrismaClient({
+  datasourceUrl: process.env.DATABASE_URL,
+});
 
 dotenv.config();
 
