@@ -3,10 +3,12 @@ import {ChatContainer} from './features/chat/components/ChatContainer'
 
 function App() {
   return (
-    <MainLayout>
-      <ChatContainer/>
-    </MainLayout>
+    <ChatContainer />
   )
 }
 
 export default App
+
+// <MainLayout>
+//   <ChatContainer/>
+// </MainLayout>
