@@ -1,0 +1,65 @@
+### Global Variables
+@hostname = localhost
+@port = 3000
+@host = http://{{hostname}}:{{port}}/api
+@contentType = application/json
+@userId = "2f3c630c-c5f2-4cb2-ac39-23f65b752d40"
+
+# @name signup
+POST {{host}}/auth/signup
+Content-Type: {{contentType}}
+
+{
+    "name": "Test User",
+    "email": "dev@example.com",
+    "password": "securePassword123"
+}
+
+###
+
+# @name login
+POST {{host}}/auth/login
+Content-Type: {{contentType}}
+
+{
+    "email": "dev@example.com",
+    "password": "securePassword123"
+}
+
+### 
+# Capture the token from the login response for subsequent calls
+@authToken = {{login.response.body.accessToken}}
+# @userId = {{login.response.body.userId}}
+
+
+### Save a Message (Inference Result)
+# @name saveMessage
+POST {{host}}/chat/message
+Content-Type: {{contentType}}
+Authorization: Bearer {{authToken}}
+
+{
+    "sender": "assistant",
+    "content": {
+        "text": "The memory leak in your Node.js app is likely in the closure.",
+        "code": "const leaky = () => { /* ... */ }",
+        "language": "typescript"
+    },
+    "userId": "{{userId}}"
+}
+
+### Update Message Evaluation (The Review)
+@messageId = {{saveMessage.response.body.id}}
+
+PATCH {{host}}/chat/message/{{messageId}}/evaluate
+Content-Type: {{contentType}}
+Authorization: Bearer {{authToken}}
+
+{
+    "rating": 5,
+    "evaluationComment": "Perfect explanation of the memory leak."
+}
+
+### Get User History
+GET {{host}}/chat/history/{{userId}}
+Authorization: Bearer {{authToken}}

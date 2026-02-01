@@ -2,6 +2,7 @@
 
 generator client {
   provider = "prisma-client-js"
+  output   = "../generated/prisma"
 }
 
 datasource db {
@@ -13,8 +14,8 @@ model User {
   name          String
   email         String         @unique
   password      String         // Hashed
+  updatedAt     DateTime       @default(now()) @updatedAt 
   createdAt     DateTime       @default(now())
-  updatedAt     DateTime       @updatedAt
   conversations Conversation[]
 }
 
@@ -25,6 +26,7 @@ model Conversation {
   user      User      @relation(fields: [userId], references: [id])
   messages  Message[]
   createdAt DateTime  @default(now())
+  updatedAt DateTime
 
   @@index([id])
   @@index([title])

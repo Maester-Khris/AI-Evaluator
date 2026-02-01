@@ -58,6 +58,8 @@ wheels/
 .env.production.local
 *.db
 *.db-journal
+src/generated/prisma
+node-evaluator-backend/src/generated/prisma
 
 # --- Logs ---
 logs

@@ -1,14 +1,12 @@
+
+import dotenv from 'dotenv';
+dotenv.config();
+
 import express from 'express';
 import type { Request, Response, NextFunction } from 'express';
-import dotenv from 'dotenv';
 import cors from 'cors';
-import { PrismaClient } from '@prisma/client/extension';
-
-export const prisma = new PrismaClient({
-  datasourceUrl: process.env.DATABASE_URL,
-});
-
-dotenv.config();
+import apiRouter from './api/index.js';
+import { prisma } from './config/prisma.js';
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -21,6 +19,7 @@ app.use(express.json());
 app.get('/health', (req, res) => {
   res.json({ status: 'active', timestamp: new Date().toISOString() });
 });
+app.use('/api', apiRouter);
 
 // Global Error Handler
 app.use((err: any, req: Request, res: Response, next: NextFunction) => {
