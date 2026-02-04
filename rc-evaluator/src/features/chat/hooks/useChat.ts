@@ -1,96 +1,103 @@
 import { useState, useCallback, useEffect } from 'react';
 import { type Conversation, type Message, type NewMessageDTO } from '../types';
-// import { useAuthStore } from '@/store/useAuthStore';
+import { useAuth } from './useAuth';
+import { useApi } from './useApi';
 
-const API_HOST = import.meta.env.VITE_API_HOST;
+export const useChat = (initialConversations: Conversation[] = []) => {
+  const { user, token } = useAuth();
+  const api = useApi();
 
-export const useChat = (initialConversations: Conversation[]) => {
-    // 1. Hook into the Auth Store
-    // Select only what you need for better performance (selectors)
-    // const token = useAuthStore((state) => state.token);
-    // const userId = useAuthStore((state) => state.userId);
-
-    const token = "";
-    const userId = "";
-
-    const [conversations, setConversations] = useState<Conversation[]>(initialConversations);
-    const [activeId, setActiveId] = useState<string | null>(initialConversations[0]?.id || null);
-    const activeConversation = conversations.find(c => c.id === activeId);
-
-    // 2. Hydrate conversations from backend on mount
-    useEffect(() => {
-        const fetchHistory = async () => {
-            try {
-                const response = await fetch(`${API_HOST}/chat/history/${userId}`, {
-                    headers: { Authorization: `Bearer ${token}` }
-                });
-                const data = await response.json();
-                setConversations(data); // Rehydrate the sidebar
-                if (data.length > 0) setActiveId(data[0].id); // Auto-select latest
-            } catch (error) {
-                console.error("Hydration failed", error);
-            }
-        };
-        fetchHistory();
-    }, [userId]);
-
-    const createNewConversation = useCallback(() => {
-        const newConv: Conversation = {
-            id: crypto.randomUUID(),
-            title: 'New Conversation',
-            messages: [],
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString()
-        };
-        setConversations(prev => [...prev, newConv]);
-        setActiveId(newConv.id);
-    }, [conversations]);
-
-    const sendMessage = async (text: string) => {
-        if (!activeId) return;
-        if (!token || !userId) {
-            console.error("Auth missing: User must be logged in.");
-            return;
-        }
-
-        const userMsg: Message = {
-            id: crypto.randomUUID(),
-            content: text,
-            role: 'user',
-            createdAt: new Date().toISOString(),
-            conversationId: activeId
-        };
-
-        // Update UI
-        setConversations(prev => prev.map(c => c.id === activeId ? {
-            ...c,
-            messages: [...c.messages, userMsg]
-        } : c));
-
-        const saveRes = await fetch(`${API_HOST}/chat/message`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}` 
-            },
-            body: JSON.stringify({
-                sender: 'user',
-                content: { text, language: 'none' },
-                userId: userId // Use the ID from the store
-            })
-        });
-
-        const {conversationId: realId } = await saveRes.json();
+  const [conversations, setConversations] = useState<Conversation[]>(initialConversations);
+  const [activeId, setActiveId] = useState<string | null>(null);
   
-        // 3. Trigger the Stream (The Python Bridge)
-        // startStreamingInference(text, realId);
+  const activeConversation = conversations.find(c => c.id === activeId);
+
+  // 1. Hydrate conversations on mount or when user changes
+  useEffect(() => {
+    if (!user?.id) return;
+
+    const hydrate = async () => {
+      try {
+        const history = await api.getHistory(user.id);
+        setConversations(history);
+        if (history.length > 0 && !activeId) {
+          setActiveId(history[0].id);
+        }
+      } catch (error) {
+        console.error("Hydration failed:", error);
+      }
     };
 
-    return {
-        conversations,
-        activeConversation,
-        sendMessage,
-        createNewConversation,
-        setActiveId
+    hydrate();
+  }, [user?.id, api.getHistory]);
+
+  // 2. Local creation (Optimistic)
+  const createNewConversation = useCallback(() => {
+    const newConv: Conversation = {
+      id: `temp-${crypto.randomUUID()}`,
+      title: 'New Conversation',
+      messages: [],
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
     };
+    setConversations(prev => [newConv, ...prev]);
+    setActiveId(newConv.id);
+  }, []);
+
+  // 3. Orchestrated Send Message
+  const sendMessage = async (text: string) => {
+    if (!activeId || !user?.id || !token) return;
+
+    const currentIdBeforeSave = activeId;
+    const userMsg: Message = {
+      id: crypto.randomUUID(),
+      content: text,
+      role: 'user',
+      createdAt: new Date().toISOString(),
+      conversationId: currentIdBeforeSave
+    };
+
+    // Optimistic UI Update
+    setConversations(prev => prev.map(c => 
+      c.id === currentIdBeforeSave 
+        ? { ...c, messages: [...c.messages, userMsg] } 
+        : c
+    ));
+
+    try {
+      // Use the API service instead of raw fetch
+      const result = await api.sendMessage({
+        sender: 'user',
+        content: { text, language: 'none' },
+        userId: user.id,
+        conversationId: currentIdBeforeSave.startsWith('temp-') ? undefined : currentIdBeforeSave
+      });
+
+      const { conversationId: realId } = result;
+
+      // RECONCILIATION: If the backend created a new ID, update our local state
+      if (currentIdBeforeSave !== realId) {
+        setConversations(prev => prev.map(c => 
+          c.id === currentIdBeforeSave ? { ...c, id: realId } : c
+        ));
+        setActiveId(realId);
+      }
+
+      // 4. TODO: startStreamingInference(text, realId);
+    } catch (error) {
+      console.error("Failed to sync message:", error);
+      // Logic for rolling back optimistic update could go here
+      setConversations(prev => prev.map(c => 
+        c.id === currentIdBeforeSave ? { ...c, messages: c.messages.filter(m => m.id !== userMsg.id) } : c
+      ));
+    }
+  };
+
+  return {
+    conversations,
+    activeConversation,
+    sendMessage,
+    createNewConversation,
+    setActiveId
+  };
 };
