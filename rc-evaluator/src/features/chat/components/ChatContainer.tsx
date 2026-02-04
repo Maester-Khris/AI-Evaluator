@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { ChatWindow } from "./ChatWindow";
 import { useChat } from '../hooks/useChat';
 import { INITIAL_MOCK_MESSAGES } from "../constants";
@@ -32,14 +31,3 @@ export const ChatContainer = () => {
     </MainLayout>
   );
 };
-
-//  const [messages, setMessages] = useState<any[]>([]);
-//   const handleSendMessage = async (text: string) => {
-//     const newMsg = { role: 'user', content: text };
-//     setMessages((prev) => [...prev, newMsg]);
-//     console.log("Sending to backend:", text);
-//   };
-// <ChatWindow>
-//   <ChatWindow.Messages messages={messages} />
-//   <ChatWindow.Input onSubmit={handleSendMessage} />
-// </ChatWindow>

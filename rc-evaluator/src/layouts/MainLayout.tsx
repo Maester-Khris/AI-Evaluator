@@ -1,4 +1,3 @@
-import ChatSidebar from '@/features/chat/components/ChatSidebar'
 import React from 'react'
 
 interface MainLayoutProps {

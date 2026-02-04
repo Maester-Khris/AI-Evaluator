@@ -1,7 +1,8 @@
 import React, { useState } from 'react'
 import { Button } from '@/common/ui/button'
-import { MessageSquare, Search, Plus } from 'lucide-react'
+import { MessageSquare, Search, Plus, LogOut, LogIn, User } from 'lucide-react'
 import type { Conversation } from '../types';
+import { useAuth } from '../hooks/useAuth';
 
 interface ChatSidebarProps {
   conversations: Conversation[];
@@ -16,6 +17,10 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({
   onSelect,
   onNewChat,
 }) => {
+  const { user, isAuthenticated, logout, login } = useAuth(); // Hypothetical user object/name
+  const displayName = !isAuthenticated ? "Guest" : user.name; // Or pull from state
+  const initial = displayName.charAt(0).toUpperCase();
+
   const [query, setQuery] = useState('');
   const filteredConversations = conversations.filter((c) =>
     c.title.toLowerCase().includes(query.toLowerCase())
@@ -93,89 +98,42 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({
           )}
         </ul>
       </nav>
+
+      <div className="mt-auto pt-4 border-t border-white/10">
+      <div className="flex items-center justify-between group">
+        <div className="flex items-center gap-3">
+          {/* Avatar Circle */}
+          <div className="w-9 h-9 rounded-full bg-indigo-600 flex items-center justify-center text-sm font-bold text-white shadow-md border border-white/10">
+            {!isAuthenticated ? <User className="w-4 h-4" /> : initial}
+          </div>
+          
+          {/* User Info */}
+          <div className="flex flex-col min-w-0">
+            <span className="text-sm font-medium text-zinc-200 truncate">
+              {displayName}
+            </span>
+            <span className="text-[10px] text-zinc-500 uppercase tracking-wider font-bold">
+              {!isAuthenticated ? 'Limited Access' : 'Pro Account'}
+            </span>
+          </div>
+        </div>
+
+        {/* Action Button */}
+        <button 
+          onClick={!isAuthenticated ? () => {} : logout}
+          className="p-2 rounded-md text-zinc-400 hover:text-white hover:bg-white/5 transition-colors"
+          title={!isAuthenticated ? "Login" : "Logout"}
+        >
+          {!isAuthenticated ? (
+            <LogIn className="w-4 h-4" />
+          ) : (
+            <LogOut className="w-4 h-4" />
+          )}
+        </button>
+      </div>
+    </div>
     </aside>
   );
 }
 
 export default ChatSidebar
-
-
-// const [query, setQuery] = React.useState('')
-// const [activeId, setActiveId] = React.useState<string | null>(initialConversations[0]?.id ?? null)
-// const [conversations] = React.useState(initialConversations)
-
-// const filtered = React.useMemo(
-//   () =>
-//     conversations.filter(
-//       (c) =>
-//         c.title.toLowerCase().includes(query.trim().toLowerCase()) ||
-//         c.last.toLowerCase().includes(query.trim().toLowerCase())
-//     ),
-//   [conversations, query]
-// )
-
-// return (
-//   <aside className="w-[280px] h-full bg-slate-900 text-zinc-200 p-4 flex flex-col shadow-2xl border-r border-white/5">
-//     <div className="space-y-3">
-//       <Button
-//         className="w-full flex items-center justify-center gap-2 shadow-sm bg-white/5 text-white hover:bg-white/10"
-//       >
-//         <Plus className="w-4 h-4" />
-//         New Chat
-//       </Button>
-
-//       <div className="relative">
-//         <span className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400">
-//           <Search className="w-4 h-4" />
-//         </span>
-//         <input
-//           type="text"
-//           value={query}
-//           onChange={(e) => setQuery(e.target.value)}
-//           placeholder="Search conversations..."
-//           aria-label="Search conversations"
-//           className="w-full pl-10 pr-3 py-2 bg-transparent text-sm placeholder-zinc-500 text-zinc-300 focus:outline-none focus:ring-0 border border-white/5"
-//         />
-//       </div>
-//     </div>
-
-//     <div className="mt-4 text-[10px] font-bold tracking-widest uppercase text-zinc-400 font-sans">Previous Conversations</div>
-
-//     <nav className="mt-2 overflow-y-auto flex-1">
-//       <ul className="space-y-2">
-//         {filteredConversations.length === 0 ? (
-//           <li className="text-sm text-zinc-500 p-3">No conversations</li>
-//         ) : (
-//           filteredConversations.map((c) => {
-//             const isActive = c.id === activeId
-//             return (
-//               <li key={c.id}>
-//                 <button
-//                   onClick={() => setActiveId(c.id)}
-//                   className={`group relative w-full text-left px-3 py-2 pl-4 rounded-md flex items-start gap-3 transition-colors duration-200 ease-in-out ${
-//                     isActive ? 'bg-white/10' : 'hover:bg-white/6'
-//                   }`}
-//                 >
-//                   {/* left accent bar */}
-//                   <span
-//                     aria-hidden
-//                     className={`absolute left-0 top-0 bottom-0 w-0.5 rounded-r-sm transition-all duration-200 ${
-//                       isActive ? 'bg-white' : 'group-hover:bg-white/80 opacity-0 group-hover:opacity-100'
-//                     }`}
-//                   />
-//                   <div className="mt-0.5">
-//                     <MessageSquare className="w-5 h-5 text-zinc-300" />
-//                   </div>
-//                   <div className="flex-1">
-//                     <div className="text-sm font-medium text-white font-sans">{c.title}</div>
-//                     <div className="text-xs text-zinc-400 truncate">{c.last}</div>
-//                   </div>
-//                 </button>
-//               </li>
-//             )
-//           })
-//         )}
-//       </ul>
-//     </nav>
-//   </aside>
-// )
