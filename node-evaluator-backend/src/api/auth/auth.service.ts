@@ -2,6 +2,7 @@
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import { UserDAO } from '../user/user.service.js';
+import { prisma } from '../../config/prisma.js';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'super-secret-sparing-partner';
 
@@ -46,5 +47,30 @@ export const AuthService = {
     } catch (e) {
       throw new Error('Invalid refresh token');
     }
+  },
+
+  async verifyToken(token: string) {
+    // 1. Check if token is blacklisted
+    const isBlacklisted = await UserDAO.findTokenB(token);
+
+    if (isBlacklisted) throw new Error('Token is no longer valid');
+
+    // 2. Verify JWT signature and expiration
+    try {
+      return jwt.verify(token, process.env.JWT_SECRET!) as { userId: string };
+    } catch (err) {
+      throw new Error('Invalid or expired token');
+    }
+  },
+
+  async logout(token: string) {
+    const decoded = jwt.decode(token) as { exp: number };
+    
+    // Add to blacklist until the token's original expiry time
+    await UserDAO.blacklistToken(token, decoded.exp);
+  },
+
+  async getUserProfile(userId: string) {
+    return await UserDAO.getUserById(userId);
   }
 };

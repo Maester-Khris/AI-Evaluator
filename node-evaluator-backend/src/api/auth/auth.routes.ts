@@ -34,4 +34,34 @@ router.post('/login', validate('body', {
   }
 });
 
+router.get('/me', async (req, res) => {
+  try {
+    const authHeader = req.headers.authorization;
+    const token = authHeader?.split(' ')[1];
+
+    if (!token) return res.status(401).json({ error: 'No token provided' });
+
+    const decoded = await AuthService.verifyToken(token);
+    const user = await AuthService.getUserProfile(decoded.userId);
+    
+    res.json(user);
+  } catch (error: any) {
+    res.status(401).json({ error: error.message });
+  }
+});
+
+
+router.post('/logout', async (req, res) => {
+  try {
+    const authHeader = req.headers.authorization;
+    const token = authHeader?.split(' ')[1];
+
+    if (token) {
+      await AuthService.logout(token);
+    }
+    res.status(200).json({ message: 'Logged out successfully' });
+  } catch (error) {
+    res.status(500).json({ error: 'Logout failed' });
+  }
+});
 export default router;

@@ -8,7 +8,7 @@ import cors from 'cors';
 import apiRouter from './api/index.js';
 import { prisma } from './config/prisma.js';
 
-const app = express();
+export const app = express();
 const PORT = process.env.PORT || 3000;
 
 // --- CORS Configuration ---
@@ -47,6 +47,8 @@ app.use((err: any, req: Request, res: Response, next: NextFunction) => {
   res.status(500).json({ error: 'Internal Server Error', message: err.message });
 });
 
-app.listen(PORT, () => {
-  console.log(`AI Evaluator Backend running at http://localhost:${PORT}`);
-});
+if (process.env.NODE_ENV !== 'test') {
+  app.listen(PORT, () => {
+    console.log(`AI Evaluator Backend running at http://localhost:${PORT}`);
+  });
+}

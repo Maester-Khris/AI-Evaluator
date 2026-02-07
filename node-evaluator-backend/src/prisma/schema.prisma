@@ -3,6 +3,7 @@
 generator client {
   provider = "prisma-client-js"
   output   = "../generated/prisma"
+  previewFeatures = ["driverAdapters"]
 }
 
 datasource db {
@@ -17,6 +18,13 @@ model User {
   updatedAt     DateTime       @default(now()) @updatedAt 
   createdAt     DateTime       @default(now())
   conversations Conversation[]
+}
+
+model BlacklistedToken {
+  id        String   @id @default(uuid()) @db.Uuid
+  token     String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
 }
 
 model Conversation {
