@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect } from 'react';
 import { type Conversation, type Message, type NewMessageDTO } from '../types';
-import { useAuth } from './useAuth';
 import { useApi } from './useApi';
+import { useAuth } from '@/features/auth/hooks/useAuth';
 
 export const useChat = (initialConversations: Conversation[] = []) => {
   const { user, token } = useAuth();

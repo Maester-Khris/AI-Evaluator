@@ -6,6 +6,7 @@ interface AuthContextType {
     isAuthenticated: boolean;
     login: (userdata: any) => void;
     logout: () => void;
+    signup: (userdata: any) => void;
     isLoading: boolean;
 }
 
@@ -39,6 +40,23 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             }
         };
         initAuth();
+    }, []);
+
+    const signup = useCallback(async (credentials: any) => {
+        setIsLoading(true);
+        try {
+            const res = await fetch(`${API_BASE}/auth/signup`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(credentials)
+            });
+            const { user, token } = await res.json();
+            localStorage.setItem('token', token);
+            setToken(token);
+            setUser(user);
+        } finally {
+            setIsLoading(false);
+        }
     }, []);
 
     const login = useCallback(async (credentials: any) => {
@@ -82,7 +100,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     // exported context value
     const value: AuthContextType = {
-        user, login, logout, isLoading, isAuthenticated: !!user, token
+        user, signup, login, logout, isLoading, isAuthenticated: !!user, token
     };
 
     return (

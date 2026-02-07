@@ -1,6 +1,6 @@
 // hooks/useApi.ts
-import { useCallback } from 'react';
-import { useAuth } from '../hooks/useAuth'; // Assuming useAuth is exported
+import { useAuth } from '@/features/auth/hooks/useAuth';
+import { useCallback } from 'react';// Assuming useAuth is exported
 
 const API_BASE = import.meta.env.VITE_API_HOST;
 
