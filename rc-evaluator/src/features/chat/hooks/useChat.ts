@@ -46,6 +46,7 @@ export const useChat = (initialConversations: Conversation[] = []) => {
 
   // 3. Orchestrated Send Message
   const sendMessage = async (text: string) => {
+    console.log("message received on usechat hook:", text);
     if (!activeId || !user?.id || !token) return;
 
     const currentIdBeforeSave = activeId;

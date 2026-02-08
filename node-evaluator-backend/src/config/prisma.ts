@@ -11,11 +11,11 @@ let prisma: PrismaClient;
 
 import('pg').then(({ default: pg }) => {
   const pool = new pg.Pool({ connectionString: process.env.DATABASE_URL });
-  const { PrismaPg } = require('@prisma/adapter-pg');
-  const adapter = new PrismaPg(pool);
-  prisma = new PrismaClient({ adapter });
+  import('@prisma/adapter-pg').then(({ PrismaPg }) => {
+    const adapter = new PrismaPg(pool);
+    prisma = new PrismaClient({ adapter });
+  });
 });
-
 
 export { prisma };
 

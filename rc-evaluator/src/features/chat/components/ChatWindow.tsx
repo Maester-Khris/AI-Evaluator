@@ -47,11 +47,10 @@ const Messages: React.FC<{ messages: any[] }> = ({ messages }) => {
               return (
                 <div key={i} className={`flex w-full ${isAssistant ? "justify-start" : "justify-end"}`}>
                   <div className={`flex gap-3 max-w-[85%] md:max-w-[80%] ${isAssistant ? "flex-row" : "flex-row-reverse text-right"}`}>
-                    
+
                     {/* Avatar: Top-aligned and crisp */}
-                    <div className={`flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center border mt-1 shadow-sm ${
-                      isAssistant ? "bg-[#2D3249] border-white/10 text-zinc-300" : "bg-white border-white/20 text-zinc-900"
-                    }`}>
+                    <div className={`flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center border mt-1 shadow-sm ${isAssistant ? "bg-[#2D3249] border-white/10 text-zinc-300" : "bg-white border-white/20 text-zinc-900"
+                      }`}>
                       {isAssistant ? <Bot size={16} /> : <User size={16} />}
                     </div>
 
@@ -60,13 +59,12 @@ const Messages: React.FC<{ messages: any[] }> = ({ messages }) => {
                       <span className="text-[10px] font-bold tracking-[0.15em] uppercase text-zinc-400/80 mb-0.5 px-1">
                         {isAssistant ? "AI Evaluator" : "You"}
                       </span>
-                      
+
                       {/* Message Bubble: Refined geometry and professional document look */}
-                      <div className={`prose prose-invert prose-sm max-w-none rounded-2xl p-4 shadow-lg border ${
-                        isAssistant 
-                          ? "bg-[#2D3249]/60 border-white/5 text-zinc-200 rounded-tl-none" 
-                          : "bg-zinc-800 border-white/10 text-zinc-100 rounded-tr-none text-left" 
-                      }`}>
+                      <div className={`prose prose-invert prose-sm max-w-none rounded-2xl p-4 shadow-lg border ${isAssistant
+                          ? "bg-[#2D3249]/60 border-white/5 text-zinc-200 rounded-tl-none"
+                          : "bg-zinc-800 border-white/10 text-zinc-100 rounded-tr-none text-left"
+                        }`}>
                         <ReactMarkdown
                           components={{
                             code({ node, inline, className, children, ...props }: any) {
@@ -116,10 +114,19 @@ const Input: React.FC<{ onSubmit: (val: string) => void }> = ({ onSubmit }) => {
   const [value, setValue] = React.useState("");
 
   const handleAction = () => {
+    console.log("handleAction called with value:", value); 
     if (value.trim()) {
       // CALL THE PROP HERE - This fixes the TS6133 error
-      onSubmit(value.trim()); 
+      onSubmit(value.trim());
       setValue("");
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    // Check if Enter was pressed without Shift
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault(); // Prevent the default behavior (new line)
+      handleAction();     // Trigger your send logic
     }
   };
 
@@ -131,11 +138,14 @@ const Input: React.FC<{ onSubmit: (val: string) => void }> = ({ onSubmit }) => {
       <div className="max-w-3xl mx-auto flex flex-col items-center">
         {/* Floating Input Container */}
         <div className="w-full relative rounded-2xl border border-white/10 bg-[#2D3249]/90 backdrop-blur-xl shadow-2xl p-1.5 flex items-end">
-          <Textarea 
-             className="flex-1 min-h-[44px] max-h-[200px] resize-none bg-transparent border-none text-zinc-100 placeholder:text-zinc-500 focus-visible:ring-0" 
-             placeholder="Message AI Evaluator..."
+          <Textarea
+            value={value}
+            onChange={(e) => setValue(e.target.value)}
+            className="flex-1 min-h-[44px] max-h-[200px] resize-none bg-transparent border-none text-zinc-100 placeholder:text-zinc-500 focus-visible:ring-0"
+            placeholder="Message AI Evaluator..."
+            onKeyDown={handleKeyDown}
           />
-          <button 
+          <button
             onClick={handleAction}
             className="mb-1.5 mr-1.5 w-9 h-9 rounded-xl bg-zinc-100 text-zinc-950 hover:bg-white transition-all flex items-center justify-center">
             <ArrowUp size={20} />
