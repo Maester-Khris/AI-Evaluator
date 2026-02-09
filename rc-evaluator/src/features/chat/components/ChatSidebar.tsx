@@ -87,7 +87,11 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({
                       </div>
                       {/* Note: Ensure c.messages[0] exists or add a lastMessage field to type */}
                       <div className="text-[11px] text-zinc-500 truncate mt-0.5">
-                        {c.messages?.[c.messages.length - 1]?.content || "No messages yet"}
+                        {(() => {
+                          const content = c.messages?.[c.messages.length - 1]?.content;
+                          if (typeof content === 'object' && content !== null) return content.text || "Message";
+                          return content || "No messages yet";
+                        })()}
                       </div>
                     </div>
                   </button>

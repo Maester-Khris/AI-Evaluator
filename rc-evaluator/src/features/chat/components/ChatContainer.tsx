@@ -1,6 +1,5 @@
 import { ChatWindow } from "./ChatWindow";
 import { useChat } from '../hooks/useChat';
-import { INITIAL_MOCK_MESSAGES } from "../constants";
 import ChatSidebar from "./ChatSidebar";
 import MainLayout from "@/layouts/MainLayout";
 import UserSection from "@/features/auth/components/UserSection";

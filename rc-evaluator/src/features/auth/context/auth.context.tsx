@@ -2,7 +2,7 @@ import React, { createContext, useState, useEffect, type ReactNode, useCallback 
 
 interface AuthContextType {
     user: any | null;
-    token: string|null;
+    token: string | null;
     isAuthenticated: boolean;
     login: (userdata: any) => void;
     logout: () => void;
@@ -19,28 +19,80 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     const API_BASE = import.meta.env.VITE_API_HOST;
 
+    const loginAsGuest = async (id: string) => {
+        try {
+            const res = await fetch(`${API_BASE}/auth/guest`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name: 'Guest User', id })
+            });
+            const data = await res.json();
+
+            localStorage.setItem('token', data.token);
+            localStorage.setItem('user', JSON.stringify(data.user));
+
+            setToken(data.token);
+            setUser(data.user);
+        } catch (err) {
+            console.error("Guest login failed", err);
+        }
+    };
+
     // Initial user fetching: Validate token on load
     useEffect(() => {
         const initAuth = async () => {
-            if (!token) {
-                setIsLoading(false);
+            const storedToken = localStorage.getItem('token');
+            const guestId = localStorage.getItem('guest_id');
+
+            // 1. If we have a token, verify the session
+            if (storedToken) {
+                try {
+                    const res = await fetch(`${API_BASE}/auth/me`, {
+                        headers: { 'Authorization': `Bearer ${storedToken}` }
+                    });
+                    if (!res.ok) throw new Error('Invalid session');
+
+                    const userData = await res.json();
+                    setUser(userData);
+                } catch (err) {
+                    logout();
+                } finally {
+                    setIsLoading(false);
+                }
                 return;
             }
-            try {
-                // GET /api/auth/me or similar
-                const res = await fetch(`${API_BASE}/auth/me`, {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
-                const userData = await res.json();
-                setUser(userData);
-            } catch (err) {
-                logout(); // Token invalid, clear it
-            } finally {
-                setIsLoading(false);
+
+            // 2. No token? Auto-login as guest if we have a generated ID
+            if (guestId) {
+                await loginAsGuest(guestId);
             }
+
+            setIsLoading(false);
         };
+
         initAuth();
     }, []);
+    // useEffect(() => {
+    //     const initAuth = async () => {
+    //         if (!token) {
+    //             setIsLoading(false);
+    //             return;
+    //         }
+    //         try {
+    //             // GET /api/auth/me or similar
+    //             const res = await fetch(`${API_BASE}/auth/me`, {
+    //                 headers: { 'Authorization': `Bearer ${token}` }
+    //             });
+    //             const userData = await res.json();
+    //             setUser(userData);
+    //         } catch (err) {
+    //             logout(); // Token invalid, clear it
+    //         } finally {
+    //             setIsLoading(false);
+    //         }
+    //     };
+    //     initAuth();
+    // }, []);
 
     const signup = useCallback(async (credentials: any) => {
         setIsLoading(true);
@@ -93,6 +145,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         } finally {
             // Always clear local state regardless of server success
             localStorage.removeItem('token');
+            localStorage.removeItem('user');
             setToken(null);
             setUser(null);
         }

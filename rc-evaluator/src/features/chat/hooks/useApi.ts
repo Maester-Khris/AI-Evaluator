@@ -8,7 +8,6 @@ export const useApi = () => {
   const { token } = useAuth(); // Get token from context
 
   const fetchWithAuth = useCallback(async (endpoint: string, options: RequestInit = {}) => {
-    console.log("fetchWithAuth called with endpoint:", endpoint);
     const headers = {
       'Content-Type': 'application/json',
       ...(token && { 'Authorization': `Bearer ${token}` }),

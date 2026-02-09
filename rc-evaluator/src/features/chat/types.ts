@@ -1,9 +1,14 @@
-export type Role = 'user' | 'assistant' | 'system';
+export type Role = 'user' | 'assistant' | 'system' | 'guest';
+
+export interface MessageContent {
+  text: string;
+  language: string;
+}
 
 export interface Message {
   id: string;
-  content: string;
-  role: Role;
+  content: string | MessageContent;
+  sender: Role;
   createdAt: string; // ISO string to match Prisma DateTime
   conversationId: string;
 }
@@ -17,4 +22,4 @@ export interface Conversation {
 }
 
 // Helper for optimistic updates
-export type NewMessageDTO = Pick<Message, 'content' | 'role'>;
+export type NewMessageDTO = Pick<Message, 'content' | 'sender'>;

@@ -1,46 +1,41 @@
 // src/api/chat/chat.service.ts
 import { prisma } from '../../config/prisma.js';
 
+const GUEST_STORAGE: Record<string, any> = {};
+
 export const ChatDAO = {
-  // async saveMessage(sender: string, content: any, conversationId?: string, userId?: string) {
-  //   let targetId = conversationId;
-
-  //   // 1. If no conversationId, create a new Conversation
-  //   if (!targetId) {
-  //     if (!userId) throw new Error("userId is required to start a new conversation");
-  //     const titleText = content.text || JSON.stringify(content).substring(0, 30);
-      
-  //     const newConversation = await prisma.conversation.create({
-  //       data: {
-  //         userId,
-  //         title: titleText.substring(0, 50) + "...",
-  //         updatedAt: new Date()
-  //       }
-  //     });
-  //     targetId = newConversation.id;
-  //   }
-
-  //   // 2. Save the message to the (new or existing) conversation
-  //    await prisma.message.create({
-  //     data: {
-  //       conversationId: targetId,
-  //       sender,
-  //       content // JsonB handles objects automatically
-  //     }
-  //   });
-  //   return await prisma.conversation.update({
-  //     where: { id: targetId },
-  //     data: { updatedAt: new Date() } // "Touch" the conversation to bring it to the top
-  //   });
-  // },
-
   async saveMessage(sender: string, content: any, conversationId?: string, userId?: string) {
+    if (userId?.includes('guest')) {
+      const cid = conversationId || `guest-conv-${Date.now()}`;
+      if (!GUEST_STORAGE[cid]) {
+        GUEST_STORAGE[cid] = {
+          id: cid,
+          userId,
+          title: content.text.substring(0, 30),
+          messages: [],
+          createdAt: new Date(),
+          updatedAt: new Date()
+        };
+      }
+
+      const newMessage = {
+        id: Date.now().toString(),
+        role: sender, // <--- CHANGE THIS FROM 'sender' TO 'role'
+        content,
+        createdAt: new Date()
+      };
+
+      GUEST_STORAGE[cid].messages.push(newMessage);
+      GUEST_STORAGE[cid].updatedAt = new Date();
+      return GUEST_STORAGE[cid];
+    }
+
     // 1. New Conversation Flow (Nested Write)
     if (!conversationId) {
       if (!userId) throw new Error("userId is required for new conversations");
-      
+
       const titleText = content.text || "New Conversation";
-      
+
       return await prisma.conversation.create({
         data: {
           userId,
@@ -75,6 +70,8 @@ export const ChatDAO = {
   },
 
   // You might also want a method to fetch a single message to verify the update
+
+
   async getMessageById(id: string) {
     return await prisma.message.findUnique({
       where: { id }
@@ -82,10 +79,10 @@ export const ChatDAO = {
   },
 
   async updateMessageEvaluation(
-    messageId: string, 
-    evaluation: { 
-      rating: number; 
-      evaluationComment?: string; 
+    messageId: string,
+    evaluation: {
+      rating: number;
+      evaluationComment?: string;
     }
   ) {
     // 1. Create the base update object
@@ -108,24 +105,41 @@ export const ChatDAO = {
   async getConversationHistory(conversationId: string) {
     return await prisma.conversation.findUnique({
       where: { id: conversationId },
-      include: { 
+      include: {
         messages: {
           orderBy: { createdAt: 'asc' }
-        } 
+        }
       }
     });
   },
 
   async getConversationsByUser(userId: string) {
+    // 1. Guest Case: Filter the in-memory store
+    if (userId.includes('guest')) {
+      return Object.values(GUEST_STORAGE)
+        .filter((conv: any) => conv.userId === userId)
+        .sort((a, b) => b.updatedAt - a.updatedAt); // Sort by most recent
+    }
+
+    // 2. Persistent Case: Hit the DB
     return await prisma.conversation.findMany({
       where: { userId },
       include: {
         messages: {
-          orderBy: { createdAt: 'asc' } // Ensure messages flow chronologically
+          orderBy: { createdAt: 'asc' }
         }
       },
-      orderBy: { createdAt: 'desc' } // Most recent conversations first
+      orderBy: { updatedAt: 'desc' } // Usually better to sort by last activity
     });
+    // return await prisma.conversation.findMany({
+    //   where: { userId },
+    //   include: {
+    //     messages: {
+    //       orderBy: { createdAt: 'asc' } // Ensure messages flow chronologically
+    //     }
+    //   },
+    //   orderBy: { createdAt: 'desc' } // Most recent conversations first
+    // });
   },
 
   async getSidebarHistory(userId: string) {

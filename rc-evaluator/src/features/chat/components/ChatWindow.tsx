@@ -31,6 +31,29 @@ const Messages: React.FC<{ messages: any[] }> = ({ messages }) => {
     }
   }, [messages]);
 
+  // helper to ensure we never pass an object to the renderer
+  const getRenderableText = (content: any): string => {
+    if (!content) return "";
+    if (typeof content === 'string') {
+      // Check if it's a stringified JSON object by mistake
+      if (content.startsWith('{')) {
+        try {
+          const parsed = JSON.parse(content);
+          return parsed.text || content;
+        } catch {
+          return content;
+        }
+      }
+      return content;
+    }
+    if (typeof content === 'object') {
+      if (typeof content.text === 'string') return content.text;
+      return JSON.stringify(content, null, 2);
+    }
+
+    return String(content);
+  };
+
   return (
     <ScrollArea ref={scrollRef} className="flex-1 h-full overflow-hidden">
       <div className="pt-[10vh] pb-48 px-4 md:px-0">
@@ -43,24 +66,24 @@ const Messages: React.FC<{ messages: any[] }> = ({ messages }) => {
             </div>
           ) : (
             messages.map((m, i) => {
-              const isAssistant = m.role === "assistant";
+              const role = m.sender;
+              const isAssistant = role === "assistant";
+              const textToShow = getRenderableText(m.content);
+
               return (
-                <div key={i} className={`flex w-full ${isAssistant ? "justify-start" : "justify-end"}`}>
+                <div key={m.id || i} className={`flex w-full ${isAssistant ? "justify-start" : "justify-end"}`}>
                   <div className={`flex gap-3 max-w-[85%] md:max-w-[80%] ${isAssistant ? "flex-row" : "flex-row-reverse text-right"}`}>
 
-                    {/* Avatar: Top-aligned and crisp */}
                     <div className={`flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center border mt-1 shadow-sm ${isAssistant ? "bg-[#2D3249] border-white/10 text-zinc-300" : "bg-white border-white/20 text-zinc-900"
                       }`}>
                       {isAssistant ? <Bot size={16} /> : <User size={16} />}
                     </div>
 
                     <div className="flex flex-col">
-                      {/* Label: Tight vertical spacing */}
                       <span className="text-[10px] font-bold tracking-[0.15em] uppercase text-zinc-400/80 mb-0.5 px-1">
                         {isAssistant ? "AI Evaluator" : "You"}
                       </span>
 
-                      {/* Message Bubble: Refined geometry and professional document look */}
                       <div className={`prose prose-invert prose-sm max-w-none rounded-2xl p-4 shadow-lg border ${isAssistant
                           ? "bg-[#2D3249]/60 border-white/5 text-zinc-200 rounded-tl-none"
                           : "bg-zinc-800 border-white/10 text-zinc-100 rounded-tr-none text-left"
@@ -69,6 +92,8 @@ const Messages: React.FC<{ messages: any[] }> = ({ messages }) => {
                           components={{
                             code({ node, inline, className, children, ...props }: any) {
                               const match = /language-(\w+)/.exec(className || "");
+                              const codeValue = String(children).replace(/\n$/, "");
+
                               return !inline && match ? (
                                 <div className="relative my-2 group/code">
                                   <div className="absolute right-2 top-2 z-10 opacity-0 group-hover/code:opacity-100 transition-opacity">
@@ -83,7 +108,7 @@ const Messages: React.FC<{ messages: any[] }> = ({ messages }) => {
                                     className="rounded-xl border border-white/5 !bg-[#1e1e1e] !m-0 !p-4"
                                     {...props}
                                   >
-                                    {String(children).replace(/\n$/, "")}
+                                    {codeValue}
                                   </SyntaxHighlighter>
                                 </div>
                               ) : (
@@ -94,7 +119,7 @@ const Messages: React.FC<{ messages: any[] }> = ({ messages }) => {
                             },
                           }}
                         >
-                          {m.content}
+                          {textToShow}
                         </ReactMarkdown>
                       </div>
                     </div>
@@ -114,7 +139,6 @@ const Input: React.FC<{ onSubmit: (val: string) => void }> = ({ onSubmit }) => {
   const [value, setValue] = React.useState("");
 
   const handleAction = () => {
-    console.log("handleAction called with value:", value); 
     if (value.trim()) {
       // CALL THE PROP HERE - This fixes the TS6133 error
       onSubmit(value.trim());

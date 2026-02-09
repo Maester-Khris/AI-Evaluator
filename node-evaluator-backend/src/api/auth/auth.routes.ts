@@ -40,14 +40,25 @@ router.get('/me', async (req, res) => {
     const token = authHeader?.split(' ')[1];
 
     if (!token) return res.status(401).json({ error: 'No token provided' });
-
     const decoded = await AuthService.verifyToken(token);
+
+    // If it's a guest, don't hit the DB, just return the decoded info
+    if (decoded.role === 'GUEST') {
+        return res.json({ id: decoded.userId, name: 'Guest User', isGuest: true });
+    }
+    
     const user = await AuthService.getUserProfile(decoded.userId);
     
     res.json(user);
   } catch (error: any) {
     res.status(401).json({ error: error.message });
   }
+});
+
+router.post('/guest', async (req, res) => {
+  const { name, id } = req.body; // e.g., "Guest User", "uuid-v4-from-frontend"
+  const result = await AuthService.loginGuest(name, id);
+  res.json(result);
 });
 
 

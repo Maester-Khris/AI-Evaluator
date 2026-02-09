@@ -18,7 +18,7 @@ const allowedOrigins = [
   'http://127.0.0.1:5173',
 ];
 
-app.use(morgan('combined'));
+app.use(morgan(':method :url :status :res[content-length] - :response-time ms'));
 app.use(cors(({
   origin: (origin, callback) => {
     // Allow requests with no origin (like mobile apps or curl)

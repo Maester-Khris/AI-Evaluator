@@ -1,20 +1,18 @@
+import { useEffect } from 'react';
 import { AuthUIProvider } from './features/auth/context/authui.context';
 import { ChatContainer } from './features/chat/components/ChatContainer'
 import { AuthProvider } from '@/features/auth/context/auth.context';
+import { v4 as uuidv4 } from 'uuid';
 
 function App() {
 
-  // Mock guest session
-  const GUEST_SESSION = {
-    token: "mock-guest-token-123",
-    user: { id: "guest-id", name: "Guest User", email: "guest@example.com" }
-  };
-
-  if (!localStorage.getItem('token')) {
-    localStorage.setItem('token', GUEST_SESSION.token);
-    localStorage.setItem('user', JSON.stringify(GUEST_SESSION.user));
-  }
-
+  useEffect(() => {
+    // Only generate if we don't have a session at all
+    if (!localStorage.getItem('token') && !localStorage.getItem('guest_id')) {
+      const guestId = `guest_${uuidv4()}`;
+      localStorage.setItem('guest_id', guestId);
+    }
+  }, []);
 
   return (
     <AuthProvider>
@@ -26,3 +24,4 @@ function App() {
 }
 
 export default App
+
