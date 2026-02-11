@@ -1,6 +1,6 @@
 import { create } from 'zustand'; // Or use a simple React Context
 
-type NotificationType = 'error' | 'success' | 'info';
+type NotificationType = 'error' | 'success' | 'info' | 'offline';
 
 interface NotificationState {
   message: string | null;

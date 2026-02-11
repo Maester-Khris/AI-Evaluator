@@ -4,6 +4,7 @@ import { ChatContainer } from './features/chat/components/ChatContainer'
 import { AuthProvider } from '@/features/auth/context/auth.context';
 import { v4 as uuidv4 } from 'uuid';
 import { GlobalNotification } from './features/notifications/globalNotification';
+import { OnlineStatusChecker } from './features/notifications/OnlineStatusChecker';
 
 function App() {
 
@@ -20,6 +21,7 @@ function App() {
       <AuthUIProvider>
         <ChatContainer />
         <GlobalNotification />
+        <OnlineStatusChecker />
       </AuthUIProvider>
     </AuthProvider>
   )
