@@ -8,6 +8,7 @@ import morgan from 'morgan';
 import cors from 'cors';
 import apiRouter from './api/index.js';
 import { prisma } from './config/prisma.js';
+import { connectRedis } from './services/queue-streaming.js';
 
 export const app = express();
 const PORT = process.env.PORT || 3000;
@@ -23,7 +24,7 @@ app.use(cors(({
   origin: (origin, callback) => {
     // Allow requests with no origin (like mobile apps or curl)
     if (!origin) return callback(null, true);
-    
+
     if (allowedOrigins.indexOf(origin) !== -1) {
       callback(null, true);
     } else {
@@ -35,6 +36,12 @@ app.use(cors(({
   credentials: true, // Required if you decide to use cookies/sessions later
 })));
 app.use(express.json());
+
+// Safety Shield: Ensure req.body is at least an empty object
+// app.use((req, res, next) => {
+//   if (!req.body) req.body = {};
+//   next();
+// });
 
 
 // Basic Health Check
@@ -49,8 +56,27 @@ app.use((err: any, req: Request, res: Response, next: NextFunction) => {
   res.status(500).json({ error: 'Internal Server Error', message: err.message });
 });
 
-if (process.env.NODE_ENV !== 'test') {
-  app.listen(PORT, () => {
-    console.log(`AI Evaluator Backend running at http://localhost:${PORT}`);
-  });
-}
+// if (process.env.NODE_ENV !== 'test') {
+//   app.listen(PORT, () => {
+//     console.log(`AI Evaluator Backend running at http://localhost:${PORT}`);
+//   });
+// }
+
+const startServer = async () => {
+  try {
+    // Ensure Redis is ready before we accept chat messages
+    await connectRedis();
+    console.log('Redis connected successfully');
+
+    if (process.env.NODE_ENV !== 'test') {
+      app.listen(PORT, () => {
+        console.log(`AI Evaluator Backend running at http://localhost:${PORT}`);
+      });
+    }
+  } catch (err) {
+    console.error('Failed to start server:', err);
+    process.exit(1);
+  }
+};
+
+startServer();

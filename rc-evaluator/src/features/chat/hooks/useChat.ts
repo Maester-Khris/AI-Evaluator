@@ -48,7 +48,11 @@ export const useChat = (initialConversations: Conversation[] = []) => {
   }, []);
 
   const sendMessage = async (text: string) => {
-  if (!user?.id || !text.trim()) return;
+    console.log('Send Message', text);
+  if (!user?.id || !text.trim()) {
+    console.error('Send Message: User not logged in or no message text');
+    return;
+  };
 
   // 1. Determine if we are creating a brand new conversation
   const isNewChat = !activeId || activeId.startsWith('temp-');

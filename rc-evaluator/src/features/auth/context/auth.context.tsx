@@ -30,7 +30,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                 body: JSON.stringify({ name: 'Guest User', id })
             });
             const data = await res.json();
-
+            console.log('Guest login success', data);
             localStorage.setItem('token', data.token);
             localStorage.setItem('user', JSON.stringify(data.user));
 
@@ -47,9 +47,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         const initAuth = async () => {
             const storedToken = localStorage.getItem('token');
             const guestId = localStorage.getItem('guest_id');
-
+            console.log("initauth started ..")
             // 1. If we have a token, verify the session
             if (storedToken) {
+                console.log("initauth has token ..");
                 try {
                     const res = await fetch(`${API_BASE}/auth/me`, {
                         headers: { 'Authorization': `Bearer ${storedToken}` }
@@ -68,6 +69,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
             // 2. No token? Auto-login as guest if we have a generated ID
             if (guestId) {
+                console.log("initauth has token ..");
                 await loginAsGuest(guestId);
             }
 
@@ -76,6 +78,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
         initAuth();
     }, []);
+
     const signup = useCallback(async (credentials: any) => {
         setIsLoading(true);
         try {

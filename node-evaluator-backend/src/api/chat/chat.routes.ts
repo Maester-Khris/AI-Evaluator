@@ -3,26 +3,45 @@ import { Router } from 'express';
 import { ChatDAO } from './chat.service.js';
 import { isNonEmptyString, isValidRating, validate } from '../../core/validation.js';
 import { AppError } from '../../core/errors.js';
+import { RedisStreamService} from '../../services/queue-streaming.js';
+
 
 const router = Router();
+const redisstream = new RedisStreamService();
 
 // POST /api/chat/message
 router.post(
 	'/message',
 	validate('body', {
-        conversationId: (v) => (v === undefined || typeof v === 'string') || 'conversationId must be a string',
-        sender: (v) => isNonEmptyString(v) || 'sender is required',
-        content: (v) => (v && typeof v === 'object') || 'content must be a valid JSON object',
+		conversationId: (v) => (v === undefined || typeof v === 'string') || 'conversationId must be a string',
+		sender: (v) => isNonEmptyString(v) || 'sender is required',
+		content: (v) => (v && typeof v === 'object') || 'content must be a valid JSON object',
 	}),
 	async (req, res, next) => {
 		const { conversationId, sender, content, userId } = req.body; // userId needed for new convos
-        try {
-			console.log('Received message save request:', { conversationId, sender, content, userId });
-            const result = await ChatDAO.saveMessage(sender, content, conversationId, userId);
-            res.status(201).json(result);
-        } catch (error) {
-            next(error);
-        }
+		console.log('Received message save request:', { conversationId, sender, content, userId });
+		try {
+			// 1. Persist the user message to DB
+			const result = await ChatDAO.saveMessage(sender, content, conversationId, userId);
+
+			// 2. Queue for LLM processing
+			console.log("queuing the message for llm answer");
+			await redisstream.pushRequest(JSON.stringify(result));
+
+			// 3. Return the saved message immediately
+			res.status(201).json(result);
+		} catch (error) {
+			next(error);
+		}
+		// try {
+		// 	console.log('Received message save request:', { conversationId, sender, content, userId });
+		//     const result = await ChatDAO.saveMessage(sender, content, conversationId, userId);
+		// 	console.log("queuing the message for llm answer");
+
+		//     res.status(201).json(result);
+		// } catch (error) {
+		//     next(error);
+		// }
 	}
 );
 
@@ -56,7 +75,7 @@ router.get(
 	}),
 	async (req, res, next) => {
 		try {
-      const userId = req.params.userId as string;
+			const userId = req.params.userId as string;
 			const history = await ChatDAO.getConversationsByUser(userId);
 			res.json(history);
 		} catch (error) {
@@ -67,18 +86,18 @@ router.get(
 
 // GET /api/chat/sidebar/:userId
 router.get('/sidebar/:userId', async (req, res, next) => {
-  try {
-    const history = await ChatDAO.getSidebarHistory(req.params.userId as string);
-    res.json(history);
-  } catch (error) { next(error); }
+	try {
+		const history = await ChatDAO.getSidebarHistory(req.params.userId as string);
+		res.json(history);
+	} catch (error) { next(error); }
 });
 
 // GET /api/chat/conversation/:id
 router.get('/conversation/:id', async (req, res, next) => {
-  try {
-    const convo = await ChatDAO.getFullConversation(req.params.id as string);
-    res.json(convo);
-  } catch (error) { next(error); }
+	try {
+		const convo = await ChatDAO.getFullConversation(req.params.id as string);
+		res.json(convo);
+	} catch (error) { next(error); }
 });
 
 export default router;
