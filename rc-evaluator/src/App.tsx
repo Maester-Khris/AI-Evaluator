@@ -3,6 +3,7 @@ import { AuthUIProvider } from './features/auth/context/authui.context';
 import { ChatContainer } from './features/chat/components/ChatContainer'
 import { AuthProvider } from '@/features/auth/context/auth.context';
 import { v4 as uuidv4 } from 'uuid';
+import { GlobalNotification } from './features/notifications/globalNotification';
 
 function App() {
 
@@ -18,6 +19,7 @@ function App() {
     <AuthProvider>
       <AuthUIProvider>
         <ChatContainer />
+        <GlobalNotification />
       </AuthUIProvider>
     </AuthProvider>
   )

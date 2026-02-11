@@ -1,3 +1,4 @@
+import { useNotification } from '@/hooks/useNotification';
 import React, { createContext, useState, useEffect, type ReactNode, useCallback } from 'react';
 
 interface AuthContextType {
@@ -16,6 +17,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const [user, setUser] = useState<any | null>(null);
     const [token, setToken] = useState<string | null>(localStorage.getItem('token'));
     const [isLoading, setIsLoading] = useState<boolean>(false);
+     const { show } = useNotification(); // Use the show function from the useNotification hook
+
 
     const API_BASE = import.meta.env.VITE_API_HOST;
 
@@ -35,6 +38,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             setUser(data.user);
         } catch (err) {
             console.error("Guest login failed", err);
+            show('Login failed. Please try again.', 'error');
         }
     };
 
@@ -72,28 +76,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
         initAuth();
     }, []);
-    // useEffect(() => {
-    //     const initAuth = async () => {
-    //         if (!token) {
-    //             setIsLoading(false);
-    //             return;
-    //         }
-    //         try {
-    //             // GET /api/auth/me or similar
-    //             const res = await fetch(`${API_BASE}/auth/me`, {
-    //                 headers: { 'Authorization': `Bearer ${token}` }
-    //             });
-    //             const userData = await res.json();
-    //             setUser(userData);
-    //         } catch (err) {
-    //             logout(); // Token invalid, clear it
-    //         } finally {
-    //             setIsLoading(false);
-    //         }
-    //     };
-    //     initAuth();
-    // }, []);
-
     const signup = useCallback(async (credentials: any) => {
         setIsLoading(true);
         try {
@@ -123,7 +105,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             localStorage.setItem('token', token);
             setToken(token);
             setUser(user);
-        } finally {
+        } catch (err) {
+            console.error("login failed", err);
+            show('Login failed. Please try again.', 'error');
+        }finally {
             setIsLoading(false);
         }
     }, []);
