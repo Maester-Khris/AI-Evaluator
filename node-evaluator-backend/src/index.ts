@@ -8,7 +8,7 @@ import morgan from 'morgan';
 import cors from 'cors';
 import apiRouter from './api/index.js';
 import { prisma } from './config/prisma.js';
-import { connectRedis } from './services/queue-streaming.js';
+import { connectRedis, redisStream } from './services/redis-streaming.js';
 
 export const app = express();
 const PORT = process.env.PORT || 3000;
@@ -37,13 +37,6 @@ app.use(cors(({
 })));
 app.use(express.json());
 
-// Safety Shield: Ensure req.body is at least an empty object
-// app.use((req, res, next) => {
-//   if (!req.body) req.body = {};
-//   next();
-// });
-
-
 // Basic Health Check
 app.get('/health', (req, res) => {
   res.json({ status: 'active', timestamp: new Date().toISOString() });
@@ -56,17 +49,16 @@ app.use((err: any, req: Request, res: Response, next: NextFunction) => {
   res.status(500).json({ error: 'Internal Server Error', message: err.message });
 });
 
-// if (process.env.NODE_ENV !== 'test') {
-//   app.listen(PORT, () => {
-//     console.log(`AI Evaluator Backend running at http://localhost:${PORT}`);
-//   });
-// }
 
 const startServer = async () => {
   try {
     // Ensure Redis is ready before we accept chat messages
     await connectRedis();
     console.log('Redis connected successfully');
+
+
+    // const redisstream = new RedisStreamService();
+    redisStream.listenForLLMResults();
 
     if (process.env.NODE_ENV !== 'test') {
       app.listen(PORT, () => {

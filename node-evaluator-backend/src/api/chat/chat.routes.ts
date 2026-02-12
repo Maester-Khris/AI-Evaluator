@@ -3,25 +3,27 @@ import { Router } from 'express';
 import { ChatDAO } from './chat.service.js';
 import { isNonEmptyString, isValidRating, validate } from '../../core/validation.js';
 import { AppError } from '../../core/errors.js';
-import { RedisStreamService} from '../../services/queue-streaming.js';
+import { redisStream} from '../../services/redis-streaming.js';
 import { randomUUID } from 'node:crypto';
 import type { StreamMessageRequest } from '../../types/streaming.contract.js';
 
 
 const router = Router();
-const redisstream = new RedisStreamService();
+// const redisstream = new RedisStreamService();
 
 // POST /api/chat/message
 router.post(
     '/message',
     validate('body', {
         conversationId: (v) => (v === undefined || typeof v === 'string') || 'conversationId must be a string',
-        sender: (v) => (v === 'user' || v === 'assistant') || 'invalid sender',
-        content: (v) => (v && typeof v === 'object') || 'content must be a valid JSON object',
-        userId: (v) => typeof v === 'string' || 'userId is required',
+        sender: (v) => isNonEmptyString(v) || 'sender is required',
+        content: (v) => (typeof v === 'string' || (v && typeof v === 'object')) || 'content must be a string or valid JSON object',
+        // userId: (v) => typeof v === 'string' || 'userId is required',
     }),
     async (req, res, next) => {
-        const { conversationId, sender, content, userId } = req.body;
+        const { conversationId, sender, content: rawContent, userId } = req.body;
+        
+        const content = typeof rawContent === 'string' ? { text: rawContent } : rawContent;
         
         // 1. Unique Hook for this specific interaction
         const correlationId = randomUUID();
@@ -48,7 +50,7 @@ router.post(
 
             // 4. Fire and Forget to Redis
             console.log(`[Queue] Dispatching task ${correlationId} for user ${userId}`);
-            await redisstream.pushRequest(task);
+            await redisStream.pushRequest(task);
 
             // 5. Response to Client
             // React uses this to render the user message immediately and 

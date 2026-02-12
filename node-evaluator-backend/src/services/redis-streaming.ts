@@ -1,6 +1,6 @@
 // src/services/redis-stream.service.ts
 import { Socket } from 'node:dgram';
-import { createClient, type RedisClientType } from 'redis';
+import { createClient, type RedisClientType, } from 'redis';
 import type { Server } from 'socket.io';
 import type { StreamMessageRequest, StreamMessageResponse, StreamResponse } from '../types/streaming.contract.js';
 import { ChatDAO } from '../api/chat/chat.service.js';
@@ -16,9 +16,17 @@ export { client };
 
 const streamBuffers: Record<string, string> = {};
 
-export class RedisStreamService {
+class RedisStreamService {
   private readonly REQ_QUEUE = 'queue:requests';
-  private readonly RES_QUEUE = 'queue:results';
+  private readonly RES_QUEUE = 'stream:results';
+
+  private static instance: RedisStreamService;
+  private isListening: boolean = false;
+
+  constructor() {
+    // Private-ish: Node caches the first execution of this file
+    console.log("🚀 RedisStreamService Initialized (Singleton)");
+  }
 
   /**
    * Enforces MessageRequest type. 
@@ -32,7 +40,7 @@ export class RedisStreamService {
       message: payload.message,
       context: JSON.stringify(payload.context),
     }, {
-      TRIM: { strategy: 'MAXLEN', limit:1000, threshold: 1000 },
+      TRIM: { strategy: 'MAXLEN', strategyModifier: '~', threshold: 1000 },
     });
   }
 
@@ -40,8 +48,11 @@ export class RedisStreamService {
   /**
    * Listens to Python's result stream and dispatches to UI/DB
    */
-  async listenForResults(io: Server) {
-    let lastId = '$';
+  async listenForLLMResults() {
+    // switch to '0' / '$' to listen for previous results or only new
+    // instead of fixed check if we haeve a saved offsets
+    let lastId = '0'; 
+    // let lastId = await client.get('stream:results:offset') || '$';
 
     while (true) {
       try {
@@ -51,6 +62,10 @@ export class RedisStreamService {
         )) as StreamResponse | null;
 
         if (!response) continue;
+
+        if(response){
+          console.log(`Received ${response[0]?.messages} data chunk from Python`);
+        }
 
         for (const stream of response) {
           for (const message of stream.messages) {
@@ -64,12 +79,12 @@ export class RedisStreamService {
             }
 
             // 2. UI: Immediate Push (The "Typewriter" effect)
-            io.to(`room:user:${userId}`).emit('ai_chunk', {
-              correlationId,
-              conversationId,
-              content,
-              status
-            });
+            // io.to(`room:user:${userId}`).emit('ai_chunk', {
+            //   correlationId,
+            //   conversationId,
+            //   content,
+            //   status
+            // });
 
             // 3. Handle End of Stream
             if (status === 'done' || status === 'error') {
@@ -77,6 +92,7 @@ export class RedisStreamService {
               
               if (status === 'done' && fullContent) {
                 console.log(`Finalizing message ${correlationId} for DB...`);
+                console.log(`Full Content: ${fullContent}`);
                 
                 // DATA OWNER: Save the Assistant's response to Postgres/Guest Storage
                 await ChatDAO.saveMessage(
@@ -86,19 +102,30 @@ export class RedisStreamService {
                   userId,
                   correlationId
                 );
+
+                
               }
 
               // Cleanup memory buffer
               delete streamBuffers[correlationId];
             }
 
+            // delete current entry in redis
+            await client.xDel(this.RES_QUEUE, message.id);
+
+            // 3. Update the offset key in Redis immediately
             lastId = message.id;
+            // await client.set('stream:results:offset', lastId);
+            // delete current entry in redis
+                await client.xDel(this.RES_QUEUE, message.id);
           }
         }
       } catch (err) {
         console.error('Stream processing error:', err);
-        await new Promise(res => setTimeout(res, 1000)); // Cool down
+        await new Promise(res => setTimeout(res, 2000)); // Cool down
       }
     }
   }
 }
+
+export const redisStream = new RedisStreamService();

@@ -47,79 +47,153 @@ export const useChat = (initialConversations: Conversation[] = []) => {
 		setActiveId(newConv.id);
 	}, []);
 
+	// const sendMessage = async (text: string) => {
+	// 	console.log("Send Message", text);
+	// 	if (!user?.id || !text.trim()) {
+	// 		console.error("Send Message: User not logged in or no message text");
+	// 		return;
+	// 	}
+
+	// 	// 1. Determine if we are creating a brand new conversation
+	// 	const isNewChat = !activeId || activeId.startsWith("temp-");
+
+	// 	// Use 'guest' sender string if the ID contains 'guest'
+	// 	const senderRole = user.id.includes("guest") ? "guest" : "user";
+
+	// 	// 2. Local message for immediate feedback
+	// 	const userMsg: Message = {
+	// 		id: crypto.randomUUID(),
+	// 		content: { text, language: "none" },
+	// 		sender: senderRole as any,
+	// 		createdAt: new Date().toISOString(),
+	// 		conversationId: activeId || "temp-id",
+	// 	};
+
+	// 	// Add message to UI immediately
+	// 	setConversations((prev) => {
+	// 		if (isNewChat) {
+	// 			return [
+	// 				{
+	// 					id: "temp-id",
+	// 					userId: user.id,
+	// 					title: text.substring(0, 30),
+	// 					messages: [userMsg],
+	// 					createdAt: new Date().toISOString(),
+	// 					updatedAt: new Date().toISOString(),
+	// 				},
+	// 				...prev,
+	// 			];
+	// 		}
+	// 		return prev.map((c) =>
+	// 			c.id === activeId ? { ...c, messages: [...c.messages, userMsg] } : c,
+	// 		);
+	// 	});
+
+	// 	try {
+	// 		// 3. API Call
+	// 		const result = await api.sendMessage({
+	// 			sender: senderRole,
+	// 			content: { text, language: "none" },
+	// 			userId: user.id,
+	// 			// If it was a new chat, send undefined so backend creates one
+	// 			conversationId: isNewChat ? undefined : activeId,
+	// 		});
+
+	// 		// 4. RECONCILIATION: Use the backend's fully formed object
+	// 		const serverConv = result; // This is the full conversation object
+
+	// 		setConversations((prev) => {
+	// 			// If it was a new chat, replace the 'temp-id' entry with the real server object
+	// 			if (isNewChat) {
+	// 				return prev.map((c) => (c.id === "temp-id" ? serverConv : c));
+	// 			}
+	// 			// Otherwise, just sync the specific conversation to ensure messages match
+	// 			return prev.map((c) => (c.id === serverConv.id ? serverConv : c));
+	// 		});
+
+	// 		// Set the active ID to the real one from the server
+	// 		if (activeId !== serverConv.id) {
+	// 			setActiveId(serverConv.id);
+	// 		}
+	// 	} catch (error) {
+	// 		console.error("Failed to sync message:", error);
+	// 		// Remove the failed message/temp conversation from state
+	// 	}
+	// };
+
 	const sendMessage = async (text: string) => {
-		console.log("Send Message", text);
-		if (!user?.id || !text.trim()) {
-			console.error("Send Message: User not logged in or no message text");
-			return;
-		}
+    if (!user?.id || !text.trim()) return;
 
-		// 1. Determine if we are creating a brand new conversation
-		const isNewChat = !activeId || activeId.startsWith("temp-");
+    // 1. Identify "temp" state
+    const isNewChat = !activeId || activeId.startsWith("temp-");
+    const tempId = activeId || `temp-${crypto.randomUUID()}`;
+    const senderRole = user.id.includes("guest") ? "guest" : "user";
 
-		// Use 'guest' sender string if the ID contains 'guest'
-		const senderRole = user.id.includes("guest") ? "guest" : "user";
+    // 2. Optimistic UI Update (Keep the user feeling fast)
+    const optimisticMsg: Message = {
+        id: crypto.randomUUID(),
+        content: { text, language: "none" },
+        sender: senderRole as any,
+        createdAt: new Date().toISOString(),
+        conversationId: tempId,
+    };
 
-		// 2. Local message for immediate feedback
-		const userMsg: Message = {
-			id: crypto.randomUUID(),
-			content: { text, language: "none" },
-			sender: senderRole as any,
-			createdAt: new Date().toISOString(),
-			conversationId: activeId || "temp-id",
-		};
+    setConversations((prev) => {
+        if (isNewChat) {
+            return [{
+                id: tempId,
+                userId: user.id,
+                title: text.substring(0, 30),
+                messages: [optimisticMsg],
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString(),
+            }, ...prev];
+        }
+        return prev.map((c) => 
+            c.id === activeId ? { ...c, messages: [...c.messages, optimisticMsg] } : c
+        );
+    });
 
-		// Add message to UI immediately
-		setConversations((prev) => {
-			if (isNewChat) {
-				return [
-					{
-						id: "temp-id",
-						userId: user.id,
-						title: text.substring(0, 30),
-						messages: [userMsg],
-						createdAt: new Date().toISOString(),
-						updatedAt: new Date().toISOString(),
-					},
-					...prev,
-				];
-			}
-			return prev.map((c) =>
-				c.id === activeId ? { ...c, messages: [...c.messages, userMsg] } : c,
-			);
-		});
+    try {
+        // 3. API Call - Returns MessageEnvelope now!
+        const envelope = await api.sendMessage({
+            sender: senderRole,
+            content: { text, language: "none" },
+            userId: user.id,
+            conversationId: isNewChat ? undefined : activeId,
+        });
 
-		try {
-			// 3. API Call
-			const result = await api.sendMessage({
-				sender: senderRole,
-				content: { text, language: "none" },
-				userId: user.id,
-				// If it was a new chat, send undefined so backend creates one
-				conversationId: isNewChat ? undefined : activeId,
-			});
+        // 4. RECONCILIATION: Align local state with MessageEnvelope
+        setConversations((prev) => {
+            return prev.map((conv) => {
+                // If this is the conversation we just interacted with
+                if (conv.id === tempId || conv.id === activeId) {
+                    return {
+                        ...conv,
+                        id: envelope.conversationId, // Swap temp ID for real ID
+                        title: envelope.title,       // Sync title (important for new chats)
+                        messages: conv.messages.map(m => 
+                            // Replace our optimistic message with the real one from DB
+                            m.id === optimisticMsg.id ? { 
+                                ...m, 
+                                id: envelope.id, 
+                                correlationId: envelope.correlationId 
+                            } : m
+                        )
+                    };
+                }
+                return conv;
+            });
+        });
 
-			// 4. RECONCILIATION: Use the backend's fully formed object
-			const serverConv = result; // This is the full conversation object
+        // 5. Update Active ID to the real UUID from DB
+        setActiveId(envelope.conversationId);
 
-			setConversations((prev) => {
-				// If it was a new chat, replace the 'temp-id' entry with the real server object
-				if (isNewChat) {
-					return prev.map((c) => (c.id === "temp-id" ? serverConv : c));
-				}
-				// Otherwise, just sync the specific conversation to ensure messages match
-				return prev.map((c) => (c.id === serverConv.id ? serverConv : c));
-			});
-
-			// Set the active ID to the real one from the server
-			if (activeId !== serverConv.id) {
-				setActiveId(serverConv.id);
-			}
-		} catch (error) {
-			console.error("Failed to sync message:", error);
-			// Remove the failed message/temp conversation from state
-		}
-	};
+    } catch (error) {
+        console.error("Failed to sync message:", error);
+        // Optional: Implement a 'failed' state on the message here
+    }
+};
 
 	return {
 		conversations,
