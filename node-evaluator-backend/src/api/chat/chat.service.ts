@@ -1,76 +1,120 @@
-// src/api/chat/chat.service.ts
 import { prisma } from '../../config/prisma.js';
+import type { MessageEnvelope, MessageStatus } from '../chat.contract.js';
+import { randomUUID } from 'node:crypto';
 
 const GUEST_STORAGE: Record<string, any> = {};
 
 export const ChatDAO = {
-  async saveMessage(sender: string, content: any, conversationId?: string, userId?: string) {
-    if (userId?.includes('guest')) {
-      const cid = conversationId || `guest-conv-${Date.now()}`;
-      if (!GUEST_STORAGE[cid]) {
-        GUEST_STORAGE[cid] = {
-          id: cid,
-          userId,
-          title: content.text.substring(0, 30),
-          messages: [],
-          createdAt: new Date(),
-          updatedAt: new Date()
-        };
-      }
 
-      const newMessage = {
-        id: Date.now().toString(),
-        role: sender, // <--- CHANGE THIS FROM 'sender' TO 'role'
-        content,
+  // ======================================= Helper methods ======================================
+  handleGuestSave(
+    sender: string,
+    content: any,
+    userId: string,
+    conversationId?: string,
+    correlationId?: string
+  ): MessageEnvelope {
+    const cid = conversationId || `guest-conv-${Date.now()}`;
+    
+    if (!GUEST_STORAGE[cid]) {
+      GUEST_STORAGE[cid] = {
+        id: cid,
+        userId,
+        title: (content.text || "New Guest Chat").substring(0, 50),
+        messages: [],
         createdAt: new Date()
       };
-
-      GUEST_STORAGE[cid].messages.push(newMessage);
-      GUEST_STORAGE[cid].updatedAt = new Date();
-      return GUEST_STORAGE[cid];
     }
 
-    // 1. New Conversation Flow (Nested Write)
+    const newMessage = {
+      id: randomUUID(),
+      sender,
+      content,
+      correlationId,
+      createdAt: new Date(),
+      status: 'completed' as MessageStatus
+    };
+
+    GUEST_STORAGE[cid].messages.push(newMessage);
+    return this.normalize(newMessage, GUEST_STORAGE[cid]);
+  },
+  
+  async handleDatabaseSave(
+    sender: string,
+    content: any,
+    userId: string,
+    conversationId?: string,
+    correlationId?: string
+  ): Promise<MessageEnvelope> {
+    // 1. New Conversation Flow (Transaction)
     if (!conversationId) {
-      if (!userId) throw new Error("userId is required for new conversations");
-
-      const titleText = content.text || "New Conversation";
-
-      return await prisma.conversation.create({
+      const result = await prisma.conversation.create({
         data: {
           userId,
-          title: titleText.substring(0, 50),
+          title: (content.text || "New Chat").substring(0, 50),
           updatedAt: new Date(),
-          // Nested Create: Saves the message and the conversation in ONE go
           messages: {
-            create: {
-              sender,
-              content
-            }
+            create: { sender, content, correlationId: correlationId||"" }
           }
-          // updatedAt is automatically set to 'now' by the DB on creation
         },
-        include: { messages: true } // Return the full object
+        include: { messages: true }
       });
+      return this.normalize(result.messages[0], result);
     }
 
-    // 2. Existing Conversation Flow
-    // We use a transaction to ensure both operations succeed together
-    const [newMessage, updatedConversation] = await prisma.$transaction([
+    // 2. Existing Conversation Flow (Transaction)
+    // We update the conversation's updatedAt and create the message in one go
+    const [newMessage, updatedConv] = await prisma.$transaction([
       prisma.message.create({
-        data: { conversationId, sender, content }
+        data: { conversationId, sender, content, correlationId: correlationId||"" }
       }),
       prisma.conversation.update({
         where: { id: conversationId },
-        data: { updatedAt: new Date() } // Manual touch for sorting
+        data: { updatedAt: new Date() }
       })
     ]);
 
-    return newMessage;
+    return this.normalize(newMessage, updatedConv);
   },
 
-  // You might also want a method to fetch a single message to verify the update
+   normalize(msg: any, conv: any): MessageEnvelope {
+    return {
+      id: msg.id,
+      correlationId: msg.correlationId || '',
+      conversationId: conv.id,
+      userId: conv.userId,
+      title: conv.title,
+      sender: msg.sender as 'user' | 'assistant',
+      status: (msg.status || 'completed') as MessageStatus,
+      content: {
+        text: msg.content.text || '',
+        language: msg.content.language || 'none',
+        metadata: msg.content.metadata || {}
+      },
+      createdAt: msg.createdAt
+    };
+  },
 
+
+  // ======================================= Main methods ======================================
+
+  async saveMessage(
+    sender: 'user' | 'assistant',
+    content: any,
+    conversationId?: string,
+    userId?: string,
+    correlationId?: string
+  ): Promise<MessageEnvelope> {
+    const isGuest = userId?.includes('guest');
+
+    if (isGuest) {
+      return this.handleGuestSave(sender, content, userId!, conversationId, correlationId);
+    }
+
+    return this.handleDatabaseSave(sender, content, userId!, conversationId, correlationId);
+  },
+
+  
 
   async getMessageById(id: string) {
     return await prisma.message.findUnique({
@@ -131,15 +175,6 @@ export const ChatDAO = {
       },
       orderBy: { updatedAt: 'desc' } // Usually better to sort by last activity
     });
-    // return await prisma.conversation.findMany({
-    //   where: { userId },
-    //   include: {
-    //     messages: {
-    //       orderBy: { createdAt: 'asc' } // Ensure messages flow chronologically
-    //     }
-    //   },
-    //   orderBy: { createdAt: 'desc' } // Most recent conversations first
-    // });
   },
 
   async getSidebarHistory(userId: string) {
@@ -169,3 +204,127 @@ export const ChatDAO = {
     });
   }
 };
+
+  // async saveMessage(sender: string, content: any, conversationId?: string, userId?: string) {
+  //   if (userId?.includes('guest')) {
+  //     const cid = conversationId || `guest-conv-${Date.now()}`;
+  //     if (!GUEST_STORAGE[cid]) {
+  //       GUEST_STORAGE[cid] = {
+  //         id: cid,
+  //         userId,
+  //         title: content.text.substring(0, 30),
+  //         messages: [],
+  //         createdAt: new Date(),
+  //         updatedAt: new Date()
+  //       };
+  //     }
+
+  //     const newMessage = {
+  //       id: Date.now().toString(),
+  //       role: sender, // <--- CHANGE THIS FROM 'sender' TO 'role'
+  //       content,
+  //       createdAt: new Date()
+  //     };
+
+  //     GUEST_STORAGE[cid].messages.push(newMessage);
+  //     GUEST_STORAGE[cid].updatedAt = new Date();
+  //     return GUEST_STORAGE[cid];
+  //   }
+
+  //   // 1. New Conversation Flow (Nested Write)
+  //   if (!conversationId) {
+  //     if (!userId) throw new Error("userId is required for new conversations");
+
+  //     const titleText = content.text || "New Conversation";
+
+  //     return await prisma.conversation.create({
+  //       data: {
+  //         userId,
+  //         title: titleText.substring(0, 50),
+  //         updatedAt: new Date(),
+  //         // Nested Create: Saves the message and the conversation in ONE go
+  //         messages: {
+  //           create: {
+  //             sender,
+  //             content
+  //           }
+  //         }
+  //         // updatedAt is automatically set to 'now' by the DB on creation
+  //       },
+  //       include: { messages: true } // Return the full object
+  //     });
+  //   }
+
+  //   // 2. Existing Conversation Flow
+  //   // We use a transaction to ensure both operations succeed together
+  //   const [newMessage, updatedConversation] = await prisma.$transaction([
+  //     prisma.message.create({
+  //       data: { conversationId, sender, content }
+  //     }),
+  //     prisma.conversation.update({
+  //       where: { id: conversationId },
+  //       data: { updatedAt: new Date() } // Manual touch for sorting
+  //     })
+  //   ]);
+
+  //   return newMessage;
+  // },
+
+  // You might also want a method to fetch a single message to verify the update
+
+  // async saveMessage(sender: string, content: any, conversationId?: string, userId?: string, correlationId?: string) {
+    
+  //   // Helper to normalize the return object
+  //   const normalize = (msg: any, conv: any) => ({
+  //     id: msg.id,
+  //     conversationId: typeof conv === 'string' ? conv : conv.id,
+  //     title: conv.title || null, // Capture the title here!
+  //     sender: msg.sender || msg.role,
+  //     content: msg.content,
+  //     correlationId: msg.correlationId,
+  //     createdAt: msg.createdAt
+  //   });
+
+  //   // --- GUEST FLOW ---
+  //   if (userId?.includes('guest')) {
+  //     const cid = conversationId || `guest-conv-${Date.now()}`;
+  //     if (!GUEST_STORAGE[cid]) {
+  //       GUEST_STORAGE[cid] = { id: cid, userId, messages: [], createdAt: new Date() };
+  //     }
+
+  //     const newMessage = {
+  //       id: crypto.randomUUID(), // Use UUID even for guests for consistency
+  //       role: sender,
+  //       content,
+  //       correlationId, // Store it in mem too!
+  //       createdAt: new Date()
+  //     };
+
+  //     GUEST_STORAGE[cid].messages.push(newMessage);
+  //     return normalize(newMessage, cid);
+  //   }
+
+  //   // --- LOGGED IN FLOW ---
+  //   if (!conversationId) {
+  //     if (!userId) throw new Error("userId required");
+  //     const result = await prisma.conversation.create({
+  //       data: {
+  //         userId,
+  //         title: (content.text || "New Chat").substring(0, 50),
+  //         updatedAt: new Date(),
+  //         messages: { create: { sender, content, correlationId:(correlationId || "") } }
+  //       },
+  //       include: { messages: true }
+  //     });
+  //     // Return the specific message just created
+  //     return normalize(result.messages[0], result);
+  //   }
+
+  //   const newMessage = await prisma.message.create({
+  //     data: { conversationId, sender, content, correlationId:(correlationId || "")  }
+  //   });
+  //   // We update conv updatedAt in background, don't block the AI queue
+  //   prisma.conversation.update({ where: { id: conversationId }, data: { updatedAt: new Date() } }).catch(console.error);
+    
+  //   return normalize(newMessage, conversationId);
+  // },

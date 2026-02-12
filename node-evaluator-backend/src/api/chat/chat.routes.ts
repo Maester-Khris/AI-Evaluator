@@ -4,6 +4,8 @@ import { ChatDAO } from './chat.service.js';
 import { isNonEmptyString, isValidRating, validate } from '../../core/validation.js';
 import { AppError } from '../../core/errors.js';
 import { RedisStreamService} from '../../services/queue-streaming.js';
+import { randomUUID } from 'node:crypto';
+import type { StreamMessageRequest } from '../../types/streaming.contract.js';
 
 
 const router = Router();
@@ -11,38 +13,53 @@ const redisstream = new RedisStreamService();
 
 // POST /api/chat/message
 router.post(
-	'/message',
-	validate('body', {
-		conversationId: (v) => (v === undefined || typeof v === 'string') || 'conversationId must be a string',
-		sender: (v) => isNonEmptyString(v) || 'sender is required',
-		content: (v) => (v && typeof v === 'object') || 'content must be a valid JSON object',
-	}),
-	async (req, res, next) => {
-		const { conversationId, sender, content, userId } = req.body; // userId needed for new convos
-		console.log('Received message save request:', { conversationId, sender, content, userId });
-		try {
-			// 1. Persist the user message to DB
-			const result = await ChatDAO.saveMessage(sender, content, conversationId, userId);
+    '/message',
+    validate('body', {
+        conversationId: (v) => (v === undefined || typeof v === 'string') || 'conversationId must be a string',
+        sender: (v) => (v === 'user' || v === 'assistant') || 'invalid sender',
+        content: (v) => (v && typeof v === 'object') || 'content must be a valid JSON object',
+        userId: (v) => typeof v === 'string' || 'userId is required',
+    }),
+    async (req, res, next) => {
+        const { conversationId, sender, content, userId } = req.body;
+        
+        // 1. Unique Hook for this specific interaction
+        const correlationId = randomUUID();
 
-			// 2. Queue for LLM processing
-			console.log("queuing the message for llm answer");
-			await redisstream.pushRequest(JSON.stringify(result));
+        try {
+            // 2. Persist Message (Handles both Guest and DB internally)
+            // Returns a unified MessageEnvelope
+            const envelope = await ChatDAO.saveMessage(
+                sender, 
+                content, 
+                conversationId, 
+                userId, 
+                correlationId 
+            );
 
-			// 3. Return the saved message immediately
-			res.status(201).json(result);
-		} catch (error) {
-			next(error);
-		}
-		// try {
-		// 	console.log('Received message save request:', { conversationId, sender, content, userId });
-		//     const result = await ChatDAO.saveMessage(sender, content, conversationId, userId);
-		// 	console.log("queuing the message for llm answer");
+            // 3. Prepare the Task for Python
+            const task: StreamMessageRequest = {
+                correlationId: correlationId as any, // Cast if UUID type mismatch
+                userId: userId as any,
+                conversationId: envelope.conversationId as any,
+                message: content.text || "",
+                context: [] // Future: Add last 2-3 messages for context here
+            };
 
-		//     res.status(201).json(result);
-		// } catch (error) {
-		//     next(error);
-		// }
-	}
+            // 4. Fire and Forget to Redis
+            console.log(`[Queue] Dispatching task ${correlationId} for user ${userId}`);
+            await redisstream.pushRequest(task);
+
+            // 5. Response to Client
+            // React uses this to render the user message immediately and 
+            // set up the listener for the 'assistant' streaming chunks.
+            res.status(201).json(envelope);
+
+        } catch (error) {
+            console.error('Chat Route Error:', error);
+            next(error);
+        }
+    }
 );
 
 // PATCH /api/chat/message/:id/evaluate
