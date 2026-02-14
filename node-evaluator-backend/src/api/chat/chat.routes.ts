@@ -50,7 +50,7 @@ router.post(
 
             // 4. Fire and Forget to Redis
             console.log(`[Queue] Dispatching task ${correlationId} for user ${userId}`);
-            await redisStream.pushRequest(task);
+            await redisStream.pushToInferenceQueue(task);
 
             // 5. Response to Client
             // React uses this to render the user message immediately and 

@@ -10,6 +10,7 @@ export const ChatContainer = () => {
 		conversations,
 		activeConversation,
 		sendMessage,
+		sendMessageToSocket,
 		createNewConversation,
 		setActiveId,
 	} = useChat([]);
@@ -28,7 +29,7 @@ export const ChatContainer = () => {
 		<MainLayout sidebar={sidebar}>
 			<ChatWindow>
 				<ChatWindow.Messages messages={activeConversation?.messages || []} />
-				<ChatWindow.Input onSubmit={sendMessage} />
+				<ChatWindow.Input onSubmit={sendMessageToSocket} />
 			</ChatWindow>
 			<AuthModal />
 		</MainLayout>

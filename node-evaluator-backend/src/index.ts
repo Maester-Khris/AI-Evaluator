@@ -2,6 +2,8 @@
 import dotenv from 'dotenv';
 dotenv.config();
 
+import http from 'http';
+import { Server } from 'socket.io';
 import express from 'express';
 import type { Request, Response, NextFunction } from 'express';
 import morgan from 'morgan';
@@ -9,6 +11,7 @@ import cors from 'cors';
 import apiRouter from './api/index.js';
 import { prisma } from './config/prisma.js';
 import { connectRedis, redisStream } from './services/redis-streaming.js';
+import {initSocketManager} from './services/socket-manager.js';
 
 export const app = express();
 const PORT = process.env.PORT || 3000;
@@ -50,6 +53,8 @@ app.use((err: any, req: Request, res: Response, next: NextFunction) => {
 });
 
 
+// Create the HTTP Server manually
+const httpServer = http.createServer(app);
 const startServer = async () => {
   try {
     // Ensure Redis is ready before we accept chat messages
@@ -57,11 +62,14 @@ const startServer = async () => {
     console.log('Redis connected successfully');
 
 
-    // const redisstream = new RedisStreamService();
+    // 1. Initialize Socket.io and pass the httpServer
+    initSocketManager(httpServer);
+    
+    // 2. Start listening for results from Python (via Redis)
     redisStream.listenForLLMResults();
 
     if (process.env.NODE_ENV !== 'test') {
-      app.listen(PORT, () => {
+      httpServer.listen(PORT, () => {
         console.log(`AI Evaluator Backend running at http://localhost:${PORT}`);
       });
     }

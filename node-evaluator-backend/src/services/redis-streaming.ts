@@ -4,6 +4,7 @@ import { createClient, type RedisClientType, } from 'redis';
 import type { Server } from 'socket.io';
 import type { StreamMessageRequest, StreamMessageResponse, StreamResponse } from '../types/streaming.contract.js';
 import { ChatDAO } from '../api/chat/chat.service.js';
+import { emitToRoom } from './socket-manager.js';
 
 // ======== export for gloabl used ================
 const client = createClient({ url: process.env.REDIS_URL || 'redis://localhost:6379' });
@@ -32,7 +33,7 @@ class RedisStreamService {
    * Enforces MessageRequest type. 
    * Note: Redis XADD values must be strings.
    */
-  async pushRequest(payload: StreamMessageRequest) {
+  async pushToInferenceQueue(payload: StreamMessageRequest) {
     return client.xAdd(this.REQ_QUEUE, '*', {
       correlationId: payload.correlationId,
       userId: payload.userId,
@@ -79,12 +80,12 @@ class RedisStreamService {
             }
 
             // 2. UI: Immediate Push (The "Typewriter" effect)
-            // io.to(`room:user:${userId}`).emit('ai_chunk', {
-            //   correlationId,
-            //   conversationId,
-            //   content,
-            //   status
-            // });
+            // Push the chunk to the specific conversation room
+            emitToRoom(conversationId, 'ai_chunk', {
+              conversationId: conversationId,
+              chunk: content,
+              isDone: status === 'done'
+            });
 
             // 3. Handle End of Stream
             if (status === 'done' || status === 'error') {
@@ -102,8 +103,6 @@ class RedisStreamService {
                   userId,
                   correlationId
                 );
-
-                
               }
 
               // Cleanup memory buffer
@@ -129,3 +128,10 @@ class RedisStreamService {
 }
 
 export const redisStream = new RedisStreamService();
+
+// io.to(`room:user:${userId}`).emit('ai_chunk', {
+//   correlationId,
+//   conversationId,
+//   content,
+//   status
+// });
