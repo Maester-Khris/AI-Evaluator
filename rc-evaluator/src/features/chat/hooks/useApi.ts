@@ -4,7 +4,7 @@ import { useCallback } from "react";
 import { useAuth } from "@/features/auth/hooks/useAuth";
 import { useNotification } from "@/hooks/useNotification";
 
-const API_BASE = import.meta.env.VITE_API_HOST;
+const API_BASE = `${import.meta.env.VITE_API_HOST}/api`;
 
 export const useApi = () => {
 	const { token } = useAuth();

@@ -11,10 +11,12 @@ export const useSocket = () => {
         if (!token) return;
 
         // Initialize long-lived connection
-        socketRef.current = io(import.meta.env.VITE_API_HOST, {
-            auth: { token }, // Node can verify this in middleware
-            transports: ['websocket'],
-        });
+        // , {
+        //     path: "/api/socket.io",
+        //     auth: { token }, // Node can verify this in middleware
+        //     transports: ['websocket'],
+        // }
+        socketRef.current = io(`${import.meta.env.VITE_API_HOST}`);
 
         socketRef.current.on('connect', () => setIsConnected(true));
         socketRef.current.on('disconnect', () => setIsConnected(false));

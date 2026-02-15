@@ -106,11 +106,14 @@ export const ChatDAO = {
     correlationId?: string
   ): Promise<MessageEnvelope> {
     const isGuest = userId?.includes('guest');
+    // console.log('isGuest?', isGuest);
 
     if (isGuest) {
+      // console.log('Guest user');
       return this.handleGuestSave(sender, content, userId!, conversationId, correlationId);
     }
 
+    // console.log('User user');
     return this.handleDatabaseSave(sender, content, userId!, conversationId, correlationId);
   },
 

@@ -10,8 +10,11 @@ import morgan from 'morgan';
 import cors from 'cors';
 import apiRouter from './api/index.js';
 import { prisma } from './config/prisma.js';
-import { connectRedis, redisStream } from './services/redis-streaming.js';
-import {initSocketManager} from './services/socket-manager.js';
+import { redisConfig } from './config/redis.js';
+import { redisStream } from './services/redis-streaming.js';
+import { emitToRoom, initSocketManager } from './services/socket-manager.js';
+
+import { randomUUID } from 'node:crypto';
 
 export const app = express();
 const PORT = process.env.PORT || 3000;
@@ -58,13 +61,35 @@ const httpServer = http.createServer(app);
 const startServer = async () => {
   try {
     // Ensure Redis is ready before we accept chat messages
-    await connectRedis();
-    console.log('Redis connected successfully');
+    // Ensure Redis is ready before we accept chat messages
+    await redisConfig.connect();
+    const isRedisReady = await redisConfig.testConnection();
+    if (!isRedisReady) {
+      throw new Error('Redis connection failed');
+    }
+    console.log('Redis connected and verified successfully');
 
 
     // 1. Initialize Socket.io and pass the httpServer
     initSocketManager(httpServer);
-    
+
+    // 2. Wire up the event from Redis -> Socket.io
+    // This is the "glue" that prevents circular dependency
+    redisStream.eventEmitter.on('chunk_received', (data) => {
+      emitToRoom(data.roomId, 'ai_chunk', {
+        conversationId: data.conversationId,
+        chunk: data.content,
+        isDone: data.isDone
+      });
+    });
+
+    redisStream.eventEmitter.on('ai_request', (data) => {
+      console.log("AI Request:", data);
+      redisStream.pushToInferenceQueue(data).then((id) => {
+        console.log("Redis Push Result ID:", id);
+      });
+    });
+
     // 2. Start listening for results from Python (via Redis)
     redisStream.listenForLLMResults();
 
@@ -80,3 +105,12 @@ const startServer = async () => {
 };
 
 startServer();
+
+// await redisStream.pushToInferenceQueue({
+//   roomId: 'test room id',
+//   correlationId: randomUUID(), // Cast if UUID type mismatch
+//   userId: randomUUID(),
+//   conversationId: randomUUID(),
+//   message: 'test',
+//   context: [] // Future: Add last 2-3 messages for context here
+// });

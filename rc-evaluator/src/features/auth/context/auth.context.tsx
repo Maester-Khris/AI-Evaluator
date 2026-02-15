@@ -29,7 +29,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 	const [isLoading, setIsLoading] = useState<boolean>(false);
 	const { show } = useNotification(); // Use the show function from the useNotification hook
 
-	const API_BASE = import.meta.env.VITE_API_HOST;
+	const API_BASE = `${import.meta.env.VITE_API_HOST}/api`;
 
 	const loginAsGuest = async (id: string) => {
 		try {

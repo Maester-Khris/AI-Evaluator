@@ -48,6 +48,7 @@ async def start_worker():
                     user_id = task.get("userId")
                     conv_id = task.get("conversationId") # The missing link for Node
                     user_msg = task.get("message")
+                    room_id = task.get("roomId")
                     
                     # Context is a JSON string in our contract
                     context_raw = task.get("context", "[]")
@@ -69,6 +70,7 @@ async def start_worker():
                                         "correlationId": corr_id,
                                         "userId": user_id,
                                         "conversationId": conv_id,
+                                        "roomId": room_id,
                                         "content": chunk,
                                         "status": "streaming"
                                     },
@@ -82,7 +84,8 @@ async def start_worker():
                             {
                                 "correlationId": corr_id, 
                                 "userId": user_id, 
-                                "conversationId": conv_id, 
+                                "conversationId": conv_id,
+                                "roomId": room_id,
                                 "status": "done"
                             },
                             maxlen=1000,

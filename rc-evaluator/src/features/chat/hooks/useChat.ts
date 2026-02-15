@@ -13,8 +13,6 @@ export const useChat = (initialConversations: Conversation[] = []) => {
 
 	const activeConversation = conversations.find((c) => c.id === activeId);
 
-
-
 	// =========================== SIDE EFFECTS =====================================
 	// 1. Hydrate conversations on mount or when user changes
 	useEffect(() => {
@@ -99,7 +97,8 @@ export const useChat = (initialConversations: Conversation[] = []) => {
 		// 1. Identify "temp" state
 		const isNewChat = !activeId || activeId.startsWith("temp-");
 		const tempId = activeId || `temp-${crypto.randomUUID()}`;
-		const senderRole = user.id.includes("guest") ? "guest" : "user";
+		// const senderRole = user.id.includes("guest") ? "guest" : "user";
+		const senderRole = "user";
 
 		// 2. Optimistic UI Update (Keep the user feeling fast)
 		const optimisticMsg: Message = {
