@@ -1,11 +1,10 @@
-import { LogIn, LogOut, MessageSquare, Plus, Search, User } from "lucide-react";
-import React, { use } from "react";
+import { LogIn, LogOut, User } from "lucide-react";
 import { useAuth } from "../hooks/useAuth";
 import { useAuthModal } from "../hooks/useAuthModal";
 
 const UserSection = () => {
-	const { user, isAuthenticated, logout } = useAuth(); // Hypothetical user object/name
-	const displayName = !isAuthenticated ? "Guest" : user.name; // Or pull from state
+	const { user, isAuthenticated, logout } = useAuth();
+	const displayName = !isAuthenticated ? "Guest" : user.name;
 	const initial = displayName.charAt(0).toUpperCase();
 	const { openModal } = useAuthModal();
 

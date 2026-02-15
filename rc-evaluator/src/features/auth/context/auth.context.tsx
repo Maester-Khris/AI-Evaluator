@@ -27,8 +27,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 		localStorage.getItem("token"),
 	);
 	const [isLoading, setIsLoading] = useState<boolean>(false);
-	const { show } = useNotification(); // Use the show function from the useNotification hook
-
+	const { show } = useNotification();
 	const API_BASE = `${import.meta.env.VITE_API_HOST}/api`;
 
 	const loginAsGuest = async (id: string) => {
@@ -143,7 +142,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 				err,
 			);
 		} finally {
-			// Always clear local state regardless of server success
 			localStorage.removeItem("token");
 			localStorage.removeItem("user");
 			setToken(null);

@@ -13,10 +13,9 @@ export const OnlineStatusChecker = () => {
 				"offline",
 			);
 		} else {
-			// Clear the offline notification when coming back online
 			clear();
 		}
 	}, [isOnline, isOffline, show, clear]);
 
-	return null; // This component doesn't render anything
+	return null;
 };

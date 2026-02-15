@@ -7,7 +7,8 @@ import { useSocket } from "./useSocket";
 export const useChat = (initialConversations: Conversation[] = []) => {
 	const { user, isLoading } = useAuth();
 	const api = useApi();
-	const [conversations, setConversations] = useState<Conversation[]>(initialConversations);
+	const [conversations, setConversations] =
+		useState<Conversation[]>(initialConversations);
 	const [activeId, setActiveId] = useState<string | null>(null);
 	const { socket, isConnected } = useSocket();
 
@@ -32,49 +33,52 @@ export const useChat = (initialConversations: Conversation[] = []) => {
 		hydrate();
 	}, [user?.id, isLoading]);
 
-	// 2. SOCKET STREAM LISTENER 
+	// 2. SOCKET STREAM LISTENER
 	useEffect(() => {
 		if (!socket) return;
 
 		// Listen for AI response chunks from Redis via Node
-		socket.on('ai_chunk', ({ conversationId, chunk, isDone }) => {
-			setConversations(prev => prev.map(conv => {
-				if (conv.id === conversationId) {
-					const msgs = [...conv.messages];
-					const lastMsg = msgs[msgs.length - 1];
+		socket.on("ai_chunk", ({ conversationId, chunk, isDone }) => {
+			setConversations((prev) =>
+				prev.map((conv) => {
+					if (conv.id === conversationId) {
+						const msgs = [...conv.messages];
+						const lastMsg = msgs[msgs.length - 1];
 
-					// If last message is assistant, append. If not, create assistant msg.
-					// message content can either be string or object
-					if (lastMsg && lastMsg.sender === 'assistant') {
-						if (typeof lastMsg.content === 'object') {
-							lastMsg.content = {
-								...lastMsg.content,
-								text: lastMsg.content.text + chunk
-							};
+						// If last message is assistant, append. If not, create assistant msg.
+						// message content can either be string or object
+						if (lastMsg && lastMsg.sender === "assistant") {
+							if (typeof lastMsg.content === "object") {
+								lastMsg.content = {
+									...lastMsg.content,
+									text: lastMsg.content.text + chunk,
+								};
+							} else {
+								lastMsg.content = {
+									text: lastMsg.content + chunk,
+									language: "none",
+								};
+							}
 						} else {
-							lastMsg.content = {
-								text: lastMsg.content + chunk,
-								language: 'none'
-							};
+							msgs.push({
+								id: `ai-${Date.now()}`,
+								sender: "assistant",
+								content: { text: chunk, language: "none" },
+								createdAt: new Date().toISOString(),
+								conversationId,
+							});
 						}
-					} else {
-						msgs.push({
-							id: `ai-${Date.now()}`,
-							sender: 'assistant',
-							content: { text: chunk, language: 'none' },
-							createdAt: new Date().toISOString(),
-							conversationId
-						});
+						return { ...conv, messages: msgs };
 					}
-					return { ...conv, messages: msgs };
-				}
-				return conv;
-			}));
+					return conv;
+				}),
+			);
 		});
 
-		return () => { socket.off('ai_chunk'); };
+		return () => {
+			socket.off("ai_chunk");
+		};
 	}, [socket]);
-
 
 	// =================================================================================
 
@@ -111,17 +115,22 @@ export const useChat = (initialConversations: Conversation[] = []) => {
 
 		setConversations((prev) => {
 			if (isNewChat) {
-				return [{
-					id: tempId,
-					userId: user.id,
-					title: text.substring(0, 30),
-					messages: [optimisticMsg],
-					createdAt: new Date().toISOString(),
-					updatedAt: new Date().toISOString(),
-				}, ...prev];
+				return [
+					{
+						id: tempId,
+						userId: user.id,
+						title: text.substring(0, 30),
+						messages: [optimisticMsg],
+						createdAt: new Date().toISOString(),
+						updatedAt: new Date().toISOString(),
+					},
+					...prev,
+				];
 			}
 			return prev.map((c) =>
-				c.id === activeId ? { ...c, messages: [...c.messages, optimisticMsg] } : c
+				c.id === activeId
+					? { ...c, messages: [...c.messages, optimisticMsg] }
+					: c,
 			);
 		});
 
@@ -142,15 +151,17 @@ export const useChat = (initialConversations: Conversation[] = []) => {
 						return {
 							...conv,
 							id: envelope.conversationId, // Swap temp ID for real ID
-							title: envelope.title,       // Sync title (important for new chats)
-							messages: conv.messages.map(m =>
+							title: envelope.title, // Sync title (important for new chats)
+							messages: conv.messages.map((m) =>
 								// Replace our optimistic message with the real one from DB
-								m.id === optimisticMsg.id ? {
-									...m,
-									id: envelope.id,
-									correlationId: envelope.correlationId
-								} : m
-							)
+								m.id === optimisticMsg.id
+									? {
+											...m,
+											id: envelope.id,
+											correlationId: envelope.correlationId,
+										}
+									: m,
+							),
 						};
 					}
 					return conv;
@@ -159,7 +170,6 @@ export const useChat = (initialConversations: Conversation[] = []) => {
 
 			// 5. Update Active ID to the real UUID from DB
 			setActiveId(envelope.conversationId);
-
 		} catch (error) {
 			console.error("Failed to sync message:", error);
 			// Optional: Implement a 'failed' state on the message here
@@ -182,47 +192,60 @@ export const useChat = (initialConversations: Conversation[] = []) => {
 		};
 		setConversations((prev) => {
 			if (isNewChat) {
-				return [{
-					id: tempId,
-					userId: user.id,
-					title: text.substring(0, 30),
-					messages: [optimisticMsg],
-					createdAt: new Date().toISOString(),
-					updatedAt: new Date().toISOString(),
-				}, ...prev];
+				return [
+					{
+						id: tempId,
+						userId: user.id,
+						title: text.substring(0, 30),
+						messages: [optimisticMsg],
+						createdAt: new Date().toISOString(),
+						updatedAt: new Date().toISOString(),
+					},
+					...prev,
+				];
 			}
 			return prev.map((c) =>
-				c.id === activeId ? { ...c, messages: [...c.messages, optimisticMsg] } : c
+				c.id === activeId
+					? { ...c, messages: [...c.messages, optimisticMsg] }
+					: c,
 			);
 		});
 
 		// we send the message and wait for the "message_received" ack
-		socket?.emit('chat_message', {
-			sender: senderRole,
-			content: { text, language: "none" },
-			userId: user.id,
-			conversationId: isNewChat ? undefined : activeId,
-			tempId: tempId
-		}, (ack: any) => {
-			const realId = ack.conversationId;
-			setConversations((prev) => prev.map((conv) => {
-				// If it's the temp conversation we just created OR the existing one
-				if (conv.id === tempId) {
-					return {
-						...conv,
-						id: realId,
-						// Replace the optimistic message ID with the real DB ID if provided
-						messages: conv.messages.map(m =>
-							m.id === optimisticMsg.id ? { ...m, id: ack.messageId || m.id } : m
-						)
-					};
-				}
-				return conv;
-			}));
+		socket?.emit(
+			"chat_message",
+			{
+				sender: senderRole,
+				content: { text, language: "none" },
+				userId: user.id,
+				conversationId: isNewChat ? undefined : activeId,
+				tempId: tempId,
+			},
+			(ack: any) => {
+				const realId = ack.conversationId;
+				setConversations((prev) =>
+					prev.map((conv) => {
+						// If it's the temp conversation we just created OR the existing one
+						if (conv.id === tempId) {
+							return {
+								...conv,
+								id: realId,
+								// Replace the optimistic message ID with the real DB ID if provided
+								messages: conv.messages.map((m) =>
+									m.id === optimisticMsg.id
+										? { ...m, id: ack.messageId || m.id }
+										: m,
+								),
+							};
+						}
+						return conv;
+					}),
+				);
 
-			setActiveId(realId);
-		});
-	}
+				setActiveId(realId);
+			},
+		);
+	};
 
 	return {
 		conversations,
@@ -233,77 +256,3 @@ export const useChat = (initialConversations: Conversation[] = []) => {
 		setActiveId,
 	};
 };
-
-// const sendMessage = async (text: string) => {
-// 	console.log("Send Message", text);
-// 	if (!user?.id || !text.trim()) {
-// 		console.error("Send Message: User not logged in or no message text");
-// 		return;
-// 	}
-
-// 	// 1. Determine if we are creating a brand new conversation
-// 	const isNewChat = !activeId || activeId.startsWith("temp-");
-
-// 	// Use 'guest' sender string if the ID contains 'guest'
-// 	const senderRole = user.id.includes("guest") ? "guest" : "user";
-
-// 	// 2. Local message for immediate feedback
-// 	const userMsg: Message = {
-// 		id: crypto.randomUUID(),
-// 		content: { text, language: "none" },
-// 		sender: senderRole as any,
-// 		createdAt: new Date().toISOString(),
-// 		conversationId: activeId || "temp-id",
-// 	};
-
-// 	// Add message to UI immediately
-// 	setConversations((prev) => {
-// 		if (isNewChat) {
-// 			return [
-// 				{
-// 					id: "temp-id",
-// 					userId: user.id,
-// 					title: text.substring(0, 30),
-// 					messages: [userMsg],
-// 					createdAt: new Date().toISOString(),
-// 					updatedAt: new Date().toISOString(),
-// 				},
-// 				...prev,
-// 			];
-// 		}
-// 		return prev.map((c) =>
-// 			c.id === activeId ? { ...c, messages: [...c.messages, userMsg] } : c,
-// 		);
-// 	});
-
-// 	try {
-// 		// 3. API Call
-// 		const result = await api.sendMessage({
-// 			sender: senderRole,
-// 			content: { text, language: "none" },
-// 			userId: user.id,
-// 			// If it was a new chat, send undefined so backend creates one
-// 			conversationId: isNewChat ? undefined : activeId,
-// 		});
-
-// 		// 4. RECONCILIATION: Use the backend's fully formed object
-// 		const serverConv = result; // This is the full conversation object
-
-// 		setConversations((prev) => {
-// 			// If it was a new chat, replace the 'temp-id' entry with the real server object
-// 			if (isNewChat) {
-// 				return prev.map((c) => (c.id === "temp-id" ? serverConv : c));
-// 			}
-// 			// Otherwise, just sync the specific conversation to ensure messages match
-// 			return prev.map((c) => (c.id === serverConv.id ? serverConv : c));
-// 		});
-
-// 		// Set the active ID to the real one from the server
-// 		if (activeId !== serverConv.id) {
-// 			setActiveId(serverConv.id);
-// 		}
-// 	} catch (error) {
-// 		console.error("Failed to sync message:", error);
-// 		// Remove the failed message/temp conversation from state
-// 	}
-// };

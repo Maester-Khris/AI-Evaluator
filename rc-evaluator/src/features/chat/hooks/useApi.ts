@@ -8,7 +8,6 @@ const API_BASE = `${import.meta.env.VITE_API_HOST}/api`;
 
 export const useApi = () => {
 	const { token } = useAuth();
-
 	const showNotification = useNotification.getState().show;
 
 	const fetchWithAuth = useCallback(

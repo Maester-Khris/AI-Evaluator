@@ -1,4 +1,4 @@
-import { create } from "zustand"; // Or use a simple React Context
+import { create } from "zustand";
 
 type NotificationType = "error" | "success" | "info" | "offline";
 

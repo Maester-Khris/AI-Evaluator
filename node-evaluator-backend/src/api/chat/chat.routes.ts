@@ -1,96 +1,113 @@
 // src/api/chat/chat.routes.ts
-import { Router } from 'express';
-import { ChatDAO } from './chat.service.js';
-import { isNonEmptyString, isValidRating, validate } from '../../core/validation.js';
-import { AppError } from '../../core/errors.js';
-import { redisStream} from '../../services/redis-streaming.js';
-import { randomUUID } from 'node:crypto';
-import type { StreamMessageRequest } from '../../types/streaming.contract.js';
 
+import { randomUUID } from "node:crypto";
+import { Router } from "express";
+import {
+	isNonEmptyString,
+	isValidRating,
+	validate,
+} from "../../core/validation.js";
+import { redisStream } from "../../services/redis-streaming.js";
+import type { StreamMessageRequest } from "../../types/streaming.contract.js";
+import { ChatDAO } from "./chat.service.js";
 
 const router = Router();
-// const redisstream = new RedisStreamService();
 
 // POST /api/chat/message
 router.post(
-    '/message',
-    validate('body', {
-        conversationId: (v) => (v === undefined || typeof v === 'string') || 'conversationId must be a string',
-        sender: (v) => isNonEmptyString(v) || 'sender is required',
-        content: (v) => (typeof v === 'string' || (v && typeof v === 'object')) || 'content must be a string or valid JSON object',
-        // userId: (v) => typeof v === 'string' || 'userId is required',
-    }),
-    async (req, res, next) => {
-        const { conversationId, sender, content: rawContent, userId } = req.body;
-        
-        const content = typeof rawContent === 'string' ? { text: rawContent } : rawContent;
-        
-        // 1. Unique Hook for this specific interaction
-        const correlationId = randomUUID();
+	"/message",
+	validate("body", {
+		conversationId: (v) =>
+			v === undefined ||
+			typeof v === "string" ||
+			"conversationId must be a string",
+		sender: (v) => isNonEmptyString(v) || "sender is required",
+		content: (v) =>
+			typeof v === "string" ||
+			(v && typeof v === "object") ||
+			"content must be a string or valid JSON object",
+	}),
+	async (req, res, next) => {
+		const { conversationId, sender, content: rawContent, userId } = req.body;
+		const content =
+			typeof rawContent === "string" ? { text: rawContent } : rawContent;
 
-        try {
-            // 2. Persist Message (Handles both Guest and DB internally)
-            // Returns a unified MessageEnvelope
-            const envelope = await ChatDAO.saveMessage(
-                sender, 
-                content, 
-                conversationId, 
-                userId, 
-                correlationId 
-            );
+		// 1. Unique Hook for this specific interaction
+		const correlationId = randomUUID();
 
-            // 3. Prepare the Task for Python
-            const task: StreamMessageRequest = {
-                correlationId: correlationId as any, // Cast if UUID type mismatch
-                userId: userId as any,
-                conversationId: envelope.conversationId as any,
-                message: content.text || "",
-                context: [] // Future: Add last 2-3 messages for context here
-            };
+		try {
+			// 2. Persist Message (Handles both Guest and DB internally)
+			const envelope = await ChatDAO.saveMessage(
+				sender,
+				content,
+				conversationId,
+				userId,
+				correlationId,
+			);
 
-            // 4. Fire and Forget to Redis
-            console.log(`[Queue] Dispatching task ${correlationId} for user ${userId}`);
-            await redisStream.pushToInferenceQueue(task);
+			// 3. Prepare the Task for Python
+			const task: StreamMessageRequest = {
+				roomId: envelope.conversationId,
+				correlationId: correlationId as any, // Cast if UUID type mismatch
+				userId: userId as any,
+				conversationId: envelope.conversationId as any,
+				message: content.text || "",
+				context: [], // Future: Add last 2-3 messages for context here
+			};
 
-            // 5. Response to Client
-            // React uses this to render the user message immediately and 
-            // set up the listener for the 'assistant' streaming chunks.
-            res.status(201).json(envelope);
+			// 4. Fire and Forget to Redis
+			console.log(
+				`[Queue] Dispatching task ${correlationId} for user ${userId}`,
+			);
+			await redisStream.pushToInferenceQueue(task);
 
-        } catch (error) {
-            console.error('Chat Route Error:', error);
-            next(error);
-        }
-    }
+			// 5. Response to Client
+			res.status(201).json(envelope);
+		} catch (error) {
+			console.error("Chat Route Error:", error);
+			next(error);
+		}
+	},
 );
 
 // PATCH /api/chat/message/:id/evaluate
 router.patch(
-	'/message/:id/evaluate',
-	validate('params', {
-		id: (v) => isNonEmptyString(v) || 'message id parameter is required',
+	"/message/:id/evaluate",
+	validate("params", {
+		id: (v) => isNonEmptyString(v) || "message id parameter is required",
 	}),
-	validate('body', {
-		rating: (v) => (v === undefined ? 'rating is required' : (isValidRating(v) || 'rating must be a number between 1 and 5')),
-		evaluationComment: (v) => (v === undefined ? true : (typeof v === 'string' || 'evaluationComment must be a string')),
+	validate("body", {
+		rating: (v) =>
+			v === undefined
+				? "rating is required"
+				: isValidRating(v) || "rating must be a number between 1 and 5",
+		evaluationComment: (v) =>
+			v === undefined
+				? true
+				: typeof v === "string" || "evaluationComment must be a string",
 	}),
 	async (req, res, next) => {
 		const id = req.params.id as string;
 		const { rating, evaluationComment } = req.body;
 		try {
-			const result = await ChatDAO.updateMessageEvaluation(id, { rating, evaluationComment });
+			const result = await ChatDAO.updateMessageEvaluation(id, {
+				rating,
+				evaluationComment,
+			});
 			res.json(result);
 		} catch (error) {
 			next(error);
 		}
-	}
+	},
 );
 
 // GET /api/chat/history/:userId
 router.get(
-	'/history/:userId',
-	validate('params', {
-		userId: (v) => isNonEmptyString(v) || 'userId parameter is required and must be a non-empty string',
+	"/history/:userId",
+	validate("params", {
+		userId: (v) =>
+			isNonEmptyString(v) ||
+			"userId parameter is required and must be a non-empty string",
 	}),
 	async (req, res, next) => {
 		try {
@@ -100,23 +117,29 @@ router.get(
 		} catch (error) {
 			next(error);
 		}
-	}
+	},
 );
 
 // GET /api/chat/sidebar/:userId
-router.get('/sidebar/:userId', async (req, res, next) => {
+router.get("/sidebar/:userId", async (req, res, next) => {
 	try {
-		const history = await ChatDAO.getSidebarHistory(req.params.userId as string);
+		const history = await ChatDAO.getSidebarHistory(
+			req.params.userId as string,
+		);
 		res.json(history);
-	} catch (error) { next(error); }
+	} catch (error) {
+		next(error);
+	}
 });
 
 // GET /api/chat/conversation/:id
-router.get('/conversation/:id', async (req, res, next) => {
+router.get("/conversation/:id", async (req, res, next) => {
 	try {
 		const convo = await ChatDAO.getFullConversation(req.params.id as string);
 		res.json(convo);
-	} catch (error) { next(error); }
+	} catch (error) {
+		next(error);
+	}
 });
 
 export default router;

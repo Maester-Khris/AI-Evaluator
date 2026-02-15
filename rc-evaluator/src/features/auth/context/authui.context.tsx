@@ -1,10 +1,4 @@
-// src/context/UIContext.tsx
-import React, {
-	createContext,
-	type ReactNode,
-	useContext,
-	useState,
-} from "react";
+import { createContext, type ReactNode, useState } from "react";
 
 type ModalType = "login" | "signup" | null;
 
