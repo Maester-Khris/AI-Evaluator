@@ -4,6 +4,8 @@ import type { MessageEnvelope, MessageStatus } from "../chat.contract.js";
 
 const GUEST_STORAGE: Record<string, any> = {};
 
+export const getGuestStorage = () => GUEST_STORAGE;
+
 export const ChatDAO = {
 	// ======================================= Helper methods ======================================
 	handleGuestSave(
@@ -12,8 +14,9 @@ export const ChatDAO = {
 		userId: string,
 		conversationId?: string,
 		correlationId?: string,
+		id?: string,
 	): MessageEnvelope {
-		const cid = conversationId || `guest-conv-${Date.now()}`;
+		const cid = conversationId || randomUUID();
 
 		if (!GUEST_STORAGE[cid]) {
 			GUEST_STORAGE[cid] = {
@@ -26,7 +29,7 @@ export const ChatDAO = {
 		}
 
 		const newMessage = {
-			id: randomUUID(),
+			id: id || randomUUID(),
 			sender,
 			content,
 			correlationId,
@@ -35,6 +38,18 @@ export const ChatDAO = {
 		};
 
 		GUEST_STORAGE[cid].messages.push(newMessage);
+
+		// Debug: Log the state of the In-Memory DB for this guest
+		const userConvs = Object.values(GUEST_STORAGE).filter(
+			(c: any) => c.userId === userId,
+		);
+		console.log(
+			`[GUEST STORAGE STATE] User: ${userId} | Count: ${userConvs.length} convs`,
+		);
+		for (const c of userConvs) {
+			console.log(`  -> Conv ${c.id}: ${c.messages.length} messages`);
+		}
+
 		return this.normalize(newMessage, GUEST_STORAGE[cid]);
 	},
 
@@ -44,6 +59,7 @@ export const ChatDAO = {
 		userId: string,
 		conversationId?: string,
 		correlationId?: string,
+		id?: string,
 	): Promise<MessageEnvelope> {
 		// 1. New Conversation Flow (Transaction)
 		if (!conversationId) {
@@ -53,7 +69,12 @@ export const ChatDAO = {
 					title: (content.text || "New Chat").substring(0, 50),
 					updatedAt: new Date(),
 					messages: {
-						create: { sender, content, correlationId: correlationId || "" },
+						create: {
+							...(id && { id }),
+							sender,
+							content,
+							correlationId: correlationId || "",
+						},
 					},
 				},
 				include: { messages: true },
@@ -66,6 +87,7 @@ export const ChatDAO = {
 		const [newMessage, updatedConv] = await prisma.$transaction([
 			prisma.message.create({
 				data: {
+					...(id && { id }),
 					conversationId,
 					sender,
 					content,
@@ -95,6 +117,8 @@ export const ChatDAO = {
 				language: msg.content.language || "none",
 				metadata: msg.content.metadata || {},
 			},
+			rating: msg.rating,
+			evaluationComment: msg.evaluationComment,
 			createdAt: msg.createdAt,
 		};
 	},
@@ -107,28 +131,27 @@ export const ChatDAO = {
 		conversationId?: string,
 		userId?: string,
 		correlationId?: string,
+		isGuest: boolean = false,
+		id?: string,
 	): Promise<MessageEnvelope> {
-		const isGuest = userId?.includes("guest");
-		// console.log('isGuest?', isGuest);
-
 		if (isGuest) {
-			// console.log('Guest user');
 			return this.handleGuestSave(
 				sender,
 				content,
 				userId!,
 				conversationId,
 				correlationId,
+				id,
 			);
 		}
 
-		// console.log('User user');
 		return this.handleDatabaseSave(
 			sender,
 			content,
 			userId!,
 			conversationId,
 			correlationId,
+			id,
 		);
 	},
 
@@ -197,21 +220,80 @@ export const ChatDAO = {
 	async getConversationsByUser(userId: string) {
 		// 1. Guest Case: Filter the in-memory store
 		if (userId.includes("guest")) {
-			return Object.values(GUEST_STORAGE)
+			const conversations = Object.values(GUEST_STORAGE)
 				.filter((conv: any) => conv.userId === userId)
-				.sort((a, b) => b.updatedAt - a.updatedAt); // Sort by most recent
+				.sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
+
+			// LOGGING RESULTS FOR GUEST
+			console.log(`\n[ChatDAO] --- Guest Storage Audit for User: ${userId} ---`);
+			console.log(`Total Guest Conversations: ${conversations.length}`);
+
+			conversations.forEach((conv, cIdx) => {
+				const evaluatedMessages = conv.messages.filter((m: any) => m.rating !== null && m.rating !== undefined);
+				console.log(
+					`[${cIdx}] Guest Conv: ${conv.id.slice(0, 8)}... | "${conv.title}" | Messages: ${conv.messages.length}`
+				);
+				if (evaluatedMessages.length > 0) {
+					evaluatedMessages.forEach((msg: any) => {
+						console.log(
+							`Review Found (MEMORY): [Msg: ${msg.id.slice(0, 8)}] ` +
+							`Rating: ${msg.rating}/5 | ` +
+							`Comment: ${msg.evaluationComment || 'No comment'}`
+						);
+					});
+				}
+			});
+			console.log(`[ChatDAO] --- Guest Audit Complete ---\n`);
+
+			return conversations;
 		}
 
 		// 2. Persistent Case: Hit the DB
-		return await prisma.conversation.findMany({
+		// return await prisma.conversation.findMany({
+		// 	where: { userId },
+		// 	include: {
+		// 		messages: {
+		// 			orderBy: { createdAt: "asc" },
+		// 		},
+		// 	},
+		// 	orderBy: { updatedAt: "desc" }, // Usually better to sort by last activity
+		// });
+		// 2. Persistent Case: Hit the DB
+		const conversations = await prisma.conversation.findMany({
 			where: { userId },
 			include: {
 				messages: {
 					orderBy: { createdAt: "asc" },
 				},
 			},
-			orderBy: { updatedAt: "desc" }, // Usually better to sort by last activity
+			orderBy: { updatedAt: "desc" },
 		});
+
+		// LOGGING RESULTS
+		console.log(`\n[ChatDAO] --- Persistence Audit for User: ${userId} ---`);
+		console.log(`Total Conversations: ${conversations.length}`);
+
+		conversations.forEach((conv, cIdx) => {
+			// Calculate evaluation stats for this conversation
+			const evaluatedMessages = conv.messages.filter(m => m.rating !== null && m.rating !== undefined);
+
+			console.log(
+				`[${cIdx}] Conv: ${conv.id.slice(0, 8)}... | "${conv.title}" | Messages: ${conv.messages.length}`
+			);
+
+			if (evaluatedMessages.length > 0) {
+				evaluatedMessages.forEach(msg => {
+					console.log(
+						`Review Found: [Msg: ${msg.id.slice(0, 8)}] ` +
+						`Rating: ${msg.rating}/5 | ` +
+						`Comment: ${msg.evaluationComment || 'No comment'}`
+					);
+				});
+			}
+		});
+		console.log(`[ChatDAO] --- Audit Complete ---\n`);
+
+		return conversations;
 	},
 
 	async getSidebarHistory(userId: string) {

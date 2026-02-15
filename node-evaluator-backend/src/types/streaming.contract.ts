@@ -15,18 +15,20 @@ export type StreamResponse = {
 
 // =========== types used for data exchange: DTO ===========
 export interface StreamMessageRequest {
-	correlationId: UUID;
-	userId: UUID;
-	conversationId: UUID;
+	correlationId: string;
+	userId: string;
+	conversationId: string;
 	roomId: string;
 	message: string;
-	context: [];
+	context: any[];
+	isGuest: boolean;
 }
 export interface StreamMessageResponse {
-	correlationId: UUID;
-	userId: UUID;
-	conversationId: UUID;
+	correlationId: string;
+	userId: string;
+	conversationId: string;
 	roomId: string;
 	content: string;
 	status: MessageStreamingStatus;
+	isGuest: boolean;
 }

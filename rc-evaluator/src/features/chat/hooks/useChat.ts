@@ -39,7 +39,7 @@ export const useChat = (initialConversations: Conversation[] = []) => {
 		if (!socket) return;
 
 		// Listen for AI response chunks from Redis via Node
-		socket.on("ai_chunk", ({ conversationId, chunk, isDone }) => {
+		socket.on("ai_chunk", ({ conversationId, messageId, chunk, isDone }) => {
 			setConversations((prev) =>
 				prev.map((conv) => {
 					if (conv.id === conversationId) {
@@ -60,9 +60,11 @@ export const useChat = (initialConversations: Conversation[] = []) => {
 									language: "none",
 								};
 							}
+							// Ensure the ID is synchronized if it was previously temporary
+							lastMsg.id = messageId;
 						} else {
 							msgs.push({
-								id: `ai-${Date.now()}`,
+								id: messageId,
 								sender: "assistant",
 								content: { text: chunk, language: "none" },
 								createdAt: new Date().toISOString(),
@@ -102,7 +104,6 @@ export const useChat = (initialConversations: Conversation[] = []) => {
 		// 1. Identify "temp" state
 		const isNewChat = !activeId || activeId.startsWith("temp-");
 		const tempId = activeId || `temp-${crypto.randomUUID()}`;
-		// const senderRole = user.id.includes("guest") ? "guest" : "user";
 		const senderRole = "user";
 
 		// 2. Optimistic UI Update (Keep the user feeling fast)
@@ -138,6 +139,7 @@ export const useChat = (initialConversations: Conversation[] = []) => {
 		try {
 			// 3. API Call - Returns MessageEnvelope now!
 			const envelope = await api.sendMessage({
+				id: optimisticMsg.id, // Include the UUID
 				sender: senderRole,
 				content: { text, language: "none" },
 				userId: user.id,
@@ -181,7 +183,7 @@ export const useChat = (initialConversations: Conversation[] = []) => {
 		if (!user?.id || !text.trim() || !isConnected) return;
 		const isNewChat = !activeId || activeId.startsWith("temp-");
 		const tempId = activeId || `temp-${crypto.randomUUID()}`;
-		const senderRole = user.id.includes("guest") ? "guest" : "user";
+		const senderRole = "user";
 
 		// 2. Optimistic UI Update (Keep the user feeling fast)
 		const optimisticMsg: Message = {
@@ -216,6 +218,7 @@ export const useChat = (initialConversations: Conversation[] = []) => {
 		socket?.emit(
 			"chat_message",
 			{
+				id: optimisticMsg.id, // Include the UUID
 				sender: senderRole,
 				content: { text, language: "none" },
 				userId: user.id,

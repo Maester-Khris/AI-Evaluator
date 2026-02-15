@@ -1,15 +1,22 @@
 import React, { useState } from "react";
-import { Star, Send } from "lucide-react";
+import { Star, Send, MessageSquare } from "lucide-react";
 import { Textarea } from "@/common/ui/textarea";
 
 interface MessageReviewProps {
     onAction: (rating: number, comment: string) => void;
+    initialRating?: number;
+    initialComment?: string;
 }
 
-export const MessageReview: React.FC<MessageReviewProps> = ({ onAction }) => {
-    const [rating, setRating] = useState(0);
-    const [comment, setComment] = useState("");
-    const [isSubmitted, setIsSubmitted] = useState(false);
+export const MessageReview: React.FC<MessageReviewProps> = ({
+    onAction,
+    initialRating,
+    initialComment
+}) => {
+    const [rating, setRating] = useState(initialRating || 0);
+    const [comment, setComment] = useState(initialComment || "");
+    const [isSubmitted, setIsSubmitted] = useState(!!initialRating);
+    const [showComment, setShowComment] = useState(false);
 
     const handleSubmit = () => {
         if (rating > 0) {
@@ -18,13 +25,40 @@ export const MessageReview: React.FC<MessageReviewProps> = ({ onAction }) => {
         }
     };
 
-    // if (isSubmitted) {
-    //     return (
-    //         <div className="mt-2 text-xs text-green-400 font-medium">
-    //             Thanks for your feedback!
-    //         </div>
-    //     );
-    // }
+    // If it's already submitted (or we just submitted it), show a compact version
+    if (isSubmitted) {
+        return (
+            <div className="mt-4 pt-3 border-t border-white/10 flex items-center justify-between">
+                <div className="flex items-center gap-1">
+                    {[1, 2, 3, 4, 5].map((star) => (
+                        <Star
+                            key={star}
+                            size={12}
+                            className={`${star <= rating
+                                ? "fill-yellow-500 text-yellow-500"
+                                : "text-zinc-600"
+                                }`}
+                        />
+                    ))}
+                </div>
+                {comment && (
+                    <div className="relative group/comment">
+                        <button
+                            onClick={() => setShowComment(!showComment)}
+                            className="p-1 rounded hover:bg-white/5 text-zinc-400 hover:text-zinc-200 transition-colors"
+                        >
+                            <MessageSquare size={14} />
+                        </button>
+                        {showComment && (
+                            <div className="absolute bottom-full right-0 mb-2 w-48 p-2 bg-[#2D3249] border border-white/10 rounded-lg shadow-xl text-[10px] text-zinc-300 z-50 animate-in fade-in zoom-in-95 duration-200">
+                                {comment}
+                            </div>
+                        )}
+                    </div>
+                )}
+            </div>
+        );
+    }
 
     return (
         <div className="mt-4 pt-3 border-t border-white/10">

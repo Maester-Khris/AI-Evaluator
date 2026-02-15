@@ -39,11 +39,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 			});
 			const data = await res.json();
 			console.log("Guest login success", data);
-			localStorage.setItem("token", data.token);
-			localStorage.setItem("user", JSON.stringify(data.user));
 
-			setToken(data.token);
-			setUser(data.user);
+			if (data.accessToken) {
+				localStorage.setItem("token", data.accessToken);
+				localStorage.setItem("user", JSON.stringify(data.user));
+
+				setToken(data.accessToken);
+				setUser(data.user);
+			}
 		} catch (err) {
 			console.error("Guest login failed", err);
 			show("Login failed. Please try again.", "error");
@@ -90,14 +93,39 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 	const signup = useCallback(async (credentials: any) => {
 		setIsLoading(true);
 		try {
+			const guestId = localStorage.getItem("guest_id");
+			const tempConversationIds = JSON.parse(
+				localStorage.getItem("temp_conversation_ids") || "[]",
+			);
+
 			const res = await fetch(`${API_BASE}/auth/signup`, {
 				method: "POST",
 				headers: { "Content-Type": "application/json" },
-				body: JSON.stringify(credentials),
+				body: JSON.stringify({ ...credentials, guestId, tempConversationIds }),
 			});
-			const { user, token } = await res.json();
-			localStorage.setItem("token", token);
-			setToken(token);
+			const data = await res.json();
+
+			if (!res.ok) {
+				throw new Error(data.error || "Signup failed");
+			}
+
+			const { user, accessToken, conversationMappings } = data;
+
+			// Handle Conversation Migration
+			if (conversationMappings) {
+				console.log("Migrating conversations:", conversationMappings);
+				// We'll store this in localStorage temporarily so other components can pick it up
+				// or emit an event. For now, let's clear the old guest tracking
+				localStorage.removeItem("guest_id");
+				localStorage.removeItem("temp_conversation_ids");
+
+				// Optional: Trigger a storage event if other tabs need to know (not strictly necessary for SPA)
+				window.dispatchEvent(new CustomEvent('auth:migration', { detail: conversationMappings }));
+			}
+
+			localStorage.setItem("token", accessToken);
+			localStorage.setItem("user", JSON.stringify(user));
+			setToken(accessToken);
 			setUser(user);
 		} finally {
 			setIsLoading(false);
@@ -107,18 +135,40 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 	const login = useCallback(async (credentials: any) => {
 		setIsLoading(true);
 		try {
+			const guestId = localStorage.getItem("guest_id");
+			const tempConversationIds = JSON.parse(
+				localStorage.getItem("temp_conversation_ids") || "[]",
+			);
+
 			const res = await fetch(`${API_BASE}/auth/login`, {
 				method: "POST",
 				headers: { "Content-Type": "application/json" },
-				body: JSON.stringify(credentials),
+				body: JSON.stringify({ ...credentials, guestId, tempConversationIds }),
 			});
-			const { user, token } = await res.json();
-			localStorage.setItem("token", token);
-			setToken(token);
+			const data = await res.json();
+
+			if (!res.ok) {
+				throw new Error(data.error || "Login failed");
+			}
+
+			const { user, accessToken, conversationMappings } = data;
+
+			// Handle Conversation Migration
+			if (conversationMappings) {
+				console.log("Migrating conversations:", conversationMappings);
+				localStorage.removeItem("guest_id");
+				localStorage.removeItem("temp_conversation_ids");
+
+				window.dispatchEvent(new CustomEvent('auth:migration', { detail: conversationMappings }));
+			}
+
+			localStorage.setItem("token", accessToken);
+			localStorage.setItem("user", JSON.stringify(user));
+			setToken(accessToken);
 			setUser(user);
-		} catch (err) {
+		} catch (err: any) {
 			console.error("login failed", err);
-			show("Login failed. Please try again.", "error");
+			show(err.message || "Login failed. Please try again.", "error");
 		} finally {
 			setIsLoading(false);
 		}
@@ -156,7 +206,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 		login,
 		logout,
 		isLoading,
-		isAuthenticated: !!user,
+		isAuthenticated: !!user && !user.isGuest,
 		token,
 	};
 

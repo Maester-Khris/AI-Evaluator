@@ -1,4 +1,4 @@
-export type Role = "user" | "assistant" | "system" | "guest";
+export type Role = "user" | "assistant" | "system";
 
 export interface MessageContent {
 	text: string;
@@ -11,6 +11,8 @@ export interface Message {
 	sender: Role;
 	createdAt: string; // ISO string to match Prisma DateTime
 	conversationId: string;
+	rating?: number;
+	evaluationComment?: string;
 }
 
 export interface Conversation {

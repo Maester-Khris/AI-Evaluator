@@ -53,7 +53,7 @@ router.get("/me", async (req, res) => {
 		if (!token) return res.status(401).json({ error: "No token provided" });
 		const decoded = await AuthService.verifyToken(token);
 
-		if (decoded.role === "GUEST") {
+		if ((decoded as any).isGuest === true) {
 			return res.json({
 				id: decoded.userId,
 				name: "Guest User",

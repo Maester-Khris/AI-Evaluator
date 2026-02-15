@@ -11,7 +11,9 @@ export const useSocket = () => {
 		if (!token) return;
 
 		// Initialize long-lived connection
-		socketRef.current = io(`${import.meta.env.VITE_API_HOST}`);
+		socketRef.current = io(`${import.meta.env.VITE_API_HOST}`, {
+			auth: { token },
+		});
 		socketRef.current.on("connect", () => setIsConnected(true));
 		socketRef.current.on("disconnect", () => setIsConnected(false));
 

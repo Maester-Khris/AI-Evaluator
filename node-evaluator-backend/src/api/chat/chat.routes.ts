@@ -7,6 +7,7 @@ import {
 	isValidRating,
 	validate,
 } from "../../core/validation.js";
+import { authMiddleware } from "../../middleware/auth.middleware.js";
 import { redisStream } from "../../services/redis-streaming.js";
 import type { StreamMessageRequest } from "../../types/streaming.contract.js";
 import { ChatDAO } from "./chat.service.js";
@@ -16,7 +17,9 @@ const router = Router();
 // POST /api/chat/message
 router.post(
 	"/message",
+	authMiddleware,
 	validate("body", {
+		id: (v) => v === undefined || typeof v === "string" || "id must be a string",
 		conversationId: (v) =>
 			v === undefined ||
 			typeof v === "string" ||
@@ -28,7 +31,9 @@ router.post(
 			"content must be a string or valid JSON object",
 	}),
 	async (req, res, next) => {
-		const { conversationId, sender, content: rawContent, userId } = req.body;
+		const { id, conversationId, sender, content: rawContent } = req.body;
+		const { id: userId, isGuest } = (req as any).user;
+		console.log("User:", userId, "Guest retrieved from auth middleware:", isGuest);
 		const content =
 			typeof rawContent === "string" ? { text: rawContent } : rawContent;
 
@@ -43,21 +48,24 @@ router.post(
 				conversationId,
 				userId,
 				correlationId,
+				isGuest,
+				id,
 			);
 
 			// 3. Prepare the Task for Python
 			const task: StreamMessageRequest = {
 				roomId: envelope.conversationId,
-				correlationId: correlationId as any, // Cast if UUID type mismatch
-				userId: userId as any,
-				conversationId: envelope.conversationId as any,
+				correlationId: correlationId,
+				userId: userId,
+				conversationId: envelope.conversationId,
 				message: content.text || "",
 				context: [], // Future: Add last 2-3 messages for context here
+				isGuest,
 			};
 
 			// 4. Fire and Forget to Redis
 			console.log(
-				`[Queue] Dispatching task ${correlationId} for user ${userId}`,
+				`[Queue] Dispatching task ${correlationId} for user ${userId} (Guest: ${isGuest})`,
 			);
 			await redisStream.pushToInferenceQueue(task);
 

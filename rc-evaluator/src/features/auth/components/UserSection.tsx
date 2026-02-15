@@ -33,7 +33,7 @@ const UserSection = () => {
 							{displayName}
 						</span>
 						<span className="text-[10px] text-zinc-500 uppercase tracking-wider font-bold">
-							{!isAuthenticated ? "Limited Access" : "Pro Account"}
+							{user?.tier === "PRO" ? "Pro Account" : "Limited Access"}
 						</span>
 					</div>
 				</div>

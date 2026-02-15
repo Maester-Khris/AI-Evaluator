@@ -4,11 +4,29 @@ import { ChatDAO } from "../api/chat/chat.service.js";
 import { corsConfig } from "../config/security.js";
 import type { StreamMessageRequest } from "../types/streaming.contract.js";
 import { redisStream } from "./redis-streaming.js";
+import { AuthService } from "../api/auth/auth.service.js";
 
 let io: Server;
 export const initSocketManager = (httpServer: any) => {
 	io = new Server(httpServer, {
 		cors: corsConfig,
+	});
+
+	io.use(async (socket, next) => {
+		const token = socket.handshake.auth.token;
+		if (!token) return next(new Error("Authentication error"));
+
+		try {
+			const decoded = await AuthService.verifyToken(token);
+			socket.data.user = {
+				id: decoded.userId,
+				role: decoded.role,
+				isGuest: (decoded as any).isGuest === true
+			};
+			next();
+		} catch (err) {
+			next(new Error("Authentication error"));
+		}
 	});
 
 	io.on("connection", (socket: Socket) => {
@@ -18,13 +36,18 @@ export const initSocketManager = (httpServer: any) => {
 			try {
 				// 1. Unique Hook for this specific interaction + DB save
 				const correlationId = randomUUID();
-				const { sender, content, userId, conversationId, tempId } = payload;
+				const { id, sender, content, conversationId, tempId } = payload;
+				const { id: userId, isGuest } = socket.data.user;
+				console.log("User:", userId, "Guest retrieved from auth middleware:", isGuest);
+
 				const savedMessage = await ChatDAO.saveMessage(
 					sender,
 					content,
 					conversationId,
 					userId,
 					correlationId,
+					isGuest,
+					id,
 				);
 
 				// 2. Push to Redis for the Python Worker
@@ -34,7 +57,8 @@ export const initSocketManager = (httpServer: any) => {
 					userId: userId as any,
 					conversationId: savedMessage.conversationId as any,
 					message: content.text || "",
-					context: [], // Future: Add last 2-3 messages for context here
+					context: [],
+					isGuest: isGuest,
 				});
 
 				// 3. ACK back to Client immediately so it can flip tempId -> realId

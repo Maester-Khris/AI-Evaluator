@@ -1,4 +1,4 @@
-import { AlertCircle } from "lucide-react";
+import { AlertCircle, Eye, EyeOff } from "lucide-react";
 import type React from "react";
 import { useState } from "react";
 import { Button } from "../../../common/ui/button";
@@ -14,6 +14,8 @@ export const SignupForm = () => {
 		confirmPassword: "",
 	});
 	const [error, setError] = useState<string | null>(null);
+	const [showPassword, setShowPassword] = useState(false);
+	const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
 	const { signup, isLoading } = useAuth();
 	const { closeModal, openModal } = useAuthModal();
@@ -57,6 +59,7 @@ export const SignupForm = () => {
 			)}
 
 			<Input
+				className="text-white"
 				name="name"
 				placeholder="Full Name"
 				value={formData.name}
@@ -65,6 +68,7 @@ export const SignupForm = () => {
 			/>
 
 			<Input
+				className="text-white"
 				name="email"
 				type="email"
 				placeholder="Email address"
@@ -73,23 +77,51 @@ export const SignupForm = () => {
 				required
 			/>
 
-			<Input
-				name="password"
-				type="password"
-				placeholder="Password"
-				value={formData.password}
-				onChange={handleChange}
-				required
-			/>
+			<div className="relative">
+				<Input
+					className="text-white pr-10" // Fix text color
+					name="password"
+					type={showPassword ? "text" : "password"}
+					placeholder="Password"
+					value={formData.password}
+					onChange={handleChange}
+					required
+				/>
+				<button
+					type="button"
+					onClick={() => setShowPassword(!showPassword)}
+					className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white"
+				>
+					{showPassword ? (
+						<EyeOff className="h-4 w-4" />
+					) : (
+						<Eye className="h-4 w-4" />
+					)}
+				</button>
+			</div>
 
-			<Input
-				name="confirmPassword"
-				type="password"
-				placeholder="Confirm Password"
-				value={formData.confirmPassword}
-				onChange={handleChange}
-				required
-			/>
+			<div className="relative">
+				<Input
+					className="text-white pr-10"
+					name="confirmPassword"
+					type={showConfirmPassword ? "text" : "password"}
+					placeholder="Confirm Password"
+					value={formData.confirmPassword}
+					onChange={handleChange}
+					required
+				/>
+				<button
+					type="button"
+					onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+					className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white"
+				>
+					{showConfirmPassword ? (
+						<EyeOff className="h-4 w-4" />
+					) : (
+						<Eye className="h-4 w-4" />
+					)}
+				</button>
+			</div>
 
 			<Button type="submit" className="w-full mt-2" disabled={isLoading}>
 				{isLoading ? "Creating account..." : "Create Account"}

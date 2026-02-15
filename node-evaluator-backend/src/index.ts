@@ -55,6 +55,7 @@ const startServer = async () => {
 		redisStream.eventEmitter.on("chunk_received", (data) => {
 			emitToRoom(data.roomId, "ai_chunk", {
 				conversationId: data.conversationId,
+				messageId: data.messageId, // Include the generated UUID
 				chunk: data.content,
 				isDone: data.isDone,
 			});

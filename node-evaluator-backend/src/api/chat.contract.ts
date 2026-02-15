@@ -20,4 +20,6 @@ export interface MessageEnvelope {
 	};
 
 	createdAt: Date;
+	rating?: number;
+	evaluationComment?: string;
 }

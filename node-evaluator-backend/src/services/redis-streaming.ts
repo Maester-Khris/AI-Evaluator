@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import EventEmitter from "node:events";
 import { ChatDAO } from "../api/chat/chat.service.js";
 import { redisConfig } from "../config/redis.js";
@@ -9,7 +10,7 @@ import type {
 
 // We won't export 'client' directly anymore to avoid confusion, or export the shared one
 export const client = redisConfig.getClient();
-const streamBuffers: Record<string, string> = {};
+const streamSessions: Record<string, { buffer: string; messageId: string }> = {};
 
 class RedisStreamService {
 	private readonly REQ_QUEUE = "queue:requests";
@@ -35,6 +36,7 @@ class RedisStreamService {
 			message: payload.message,
 			context: JSON.stringify(payload.context || []),
 			roomId: payload.roomId || "",
+			isGuest: String(payload.isGuest),
 		});
 
 		console.log(
@@ -62,11 +64,11 @@ class RedisStreamService {
 
 				if (!response) continue;
 
-				if (response) {
-					console.log(
-						`Received ${JSON.stringify(response[0]?.messages)} data chunk from Python`,
-					);
-				}
+				// if (response) {
+				// 	console.log(
+				// 		`Received ${JSON.stringify(response[0]?.messages)} data chunk from Python`,
+				// 	);
+				// }
 
 				for (const stream of response) {
 					for (const message of stream.messages) {
@@ -78,30 +80,42 @@ class RedisStreamService {
 							roomId,
 							content,
 							status,
+							isGuest
 						} = data;
 
-						// 1. Accumulate chunks in memory for the final DB save
+						console.log("retrieved from redis", { isGuest, userId });
+
+						// const isGuest
+
+						// 1. Initialize or get the session (buffer + persistent messageId)
+						if (!streamSessions[correlationId]) {
+							streamSessions[correlationId] = {
+								buffer: "",
+								messageId: randomUUID(),
+							};
+						}
+						const session = streamSessions[correlationId];
+
 						if (status === "streaming") {
-							streamBuffers[correlationId] =
-								(streamBuffers[correlationId] || "") + content;
+							session.buffer += content;
 						}
 
-						// 2. Emit event for UI to display chunk
+						// 2. Emit event for UI to display chunk (now includes the generated messageId)
 						this.eventEmitter.emit("chunk_received", {
 							roomId,
 							conversationId,
 							content,
+							messageId: session.messageId,
 							isDone: status === "done",
 						});
 
 						// 3. Handle End of Stream
 						if (status === "done" || status === "error") {
-							const fullContent = streamBuffers[correlationId] || "";
+							const fullContent = session.buffer;
 
 							if (status === "done" && fullContent) {
-								console.log(`Finalizing message ${correlationId} for DB...`);
-								console.log(`Full Content: ${fullContent}`);
-								console.log(`User ID: ${userId}`);
+								const aiMsgId = session.messageId;
+								// console.log(`Finalizing message ${correlationId} for DB...`);
 
 								// DATA OWNER: Save the Assistant's response to Postgres/Guest Storage
 								await ChatDAO.saveMessage(
@@ -110,11 +124,13 @@ class RedisStreamService {
 									conversationId,
 									userId,
 									correlationId,
+									isGuest,
+									aiMsgId,
 								);
 							}
 
-							// Cleanup memory buffer
-							delete streamBuffers[correlationId];
+							// Cleanup session
+							delete streamSessions[correlationId];
 						}
 
 						// 3. Update the offset key in Redis immediately

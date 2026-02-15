@@ -162,6 +162,8 @@ const Messages: React.FC<{
 												</ReactMarkdown>
 												{isAssistant && (
 													<MessageReview
+														initialRating={m.rating}
+														initialComment={m.evaluationComment}
 														onAction={(rating, comment) =>
 															onEvaluate({
 																message_id: m.id,
