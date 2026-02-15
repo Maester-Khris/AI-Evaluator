@@ -145,21 +145,42 @@ export const ChatDAO = {
 			evaluationComment?: string;
 		},
 	) {
-		// 1. Create the base update object
+		// 1. Check Guest Storage (In-Memory)
+		for (const convId in GUEST_STORAGE) {
+			const conv = GUEST_STORAGE[convId];
+			const msg = conv.messages.find((m: any) => m.id === messageId);
+
+			if (msg) {
+				msg.rating = evaluation.rating;
+				msg.evaluationAt = new Date();
+				if (evaluation.evaluationComment !== undefined) {
+					msg.evaluationComment = evaluation.evaluationComment;
+				}
+				return msg;
+			}
+		}
+
+		// 2. Create the base update object for Database
 		const updateData: any = {
 			rating: evaluation.rating,
 			evaluationAt: new Date(),
 		};
 
-		// 2. Only add the comment if it's not undefined
+		// 3. Only add the comment if it's not undefined
 		if (evaluation.evaluationComment !== undefined) {
 			updateData.evaluationComment = evaluation.evaluationComment;
 		}
 
-		return await prisma.message.update({
-			where: { id: messageId },
-			data: updateData,
-		});
+		try {
+			return await prisma.message.update({
+				where: { id: messageId },
+				data: updateData,
+			});
+		} catch (error) {
+			// If message not found in DB, standard Prisma error
+			console.error(`Message ${messageId} not found in DB for evaluation update.`);
+			return null;
+		}
 	},
 
 	async getConversationHistory(conversationId: string) {

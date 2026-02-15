@@ -4,6 +4,7 @@ import MainLayout from "@/layouts/MainLayout";
 import { useChat } from "../hooks/useChat";
 import ChatSidebar from "./ChatSidebar";
 import { ChatWindow } from "./ChatWindow";
+import { useAIReview } from "@/features/review/hooks/useEvaluation";
 
 export const ChatContainer = () => {
 	const {
@@ -14,6 +15,7 @@ export const ChatContainer = () => {
 		createNewConversation,
 		setActiveId,
 	} = useChat([]);
+	const { sendEvaluationToSocket } = useAIReview();
 
 	const sidebar = (
 		<ChatSidebar
@@ -28,7 +30,7 @@ export const ChatContainer = () => {
 	return (
 		<MainLayout sidebar={sidebar}>
 			<ChatWindow>
-				<ChatWindow.Messages messages={activeConversation?.messages || []} />
+				<ChatWindow.Messages messages={activeConversation?.messages || []} onEvaluate={sendEvaluationToSocket} />
 				<ChatWindow.Input onSubmit={sendMessageToSocket} />
 			</ChatWindow>
 			<AuthModal />

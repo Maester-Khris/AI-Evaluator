@@ -5,11 +5,20 @@ import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { vscDarkPlus } from "react-syntax-highlighter/dist/esm/styles/prism";
 import { ScrollArea } from "@/common/ui/scroll-area";
 import { Textarea } from "@/common/ui/textarea";
+import { MessageReview } from "@/features/review/components/MessageReview"; // Component
+import type { MessageReview as MessageReviewType } from "@/features/review/types"; // Type
+
+
 
 type ChatWindowComponent = React.FC<{ children: React.ReactNode }> & {
-	Messages: React.FC<{ messages: any[] }>;
+	Messages: React.FC<{
+		messages: any[];
+		onEvaluate: (evaluation: MessageReviewType) => void;
+	}>;
+
 	Input: React.FC<{ onSubmit: (val: string) => void }>;
 };
+
 
 // 1. Parent Wrapper: Now uses a darker, unified background
 export const ChatWindow: ChatWindowComponent = ({ children }) => {
@@ -21,7 +30,10 @@ export const ChatWindow: ChatWindowComponent = ({ children }) => {
 };
 
 // 2. The Messages Display
-const Messages: React.FC<{ messages: any[] }> = ({ messages }) => {
+const Messages: React.FC<{
+	messages: any[];
+	onEvaluate: (evaluation: MessageReviewType) => void;
+}> = ({ messages, onEvaluate }) => {
 	const scrollRef = useRef<HTMLDivElement>(null);
 
 	useEffect(() => {
@@ -82,11 +94,10 @@ const Messages: React.FC<{ messages: any[] }> = ({ messages }) => {
 										className={`flex gap-3 max-w-[85%] md:max-w-[80%] ${isAssistant ? "flex-row" : "flex-row-reverse text-right"}`}
 									>
 										<div
-											className={`flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center border mt-1 shadow-sm ${
-												isAssistant
-													? "bg-[#2D3249] border-white/10 text-zinc-300"
-													: "bg-white border-white/20 text-zinc-900"
-											}`}
+											className={`flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center border mt-1 shadow-sm ${isAssistant
+												? "bg-[#2D3249] border-white/10 text-zinc-300"
+												: "bg-white border-white/20 text-zinc-900"
+												}`}
 										>
 											{isAssistant ? <Bot size={16} /> : <User size={16} />}
 										</div>
@@ -97,11 +108,10 @@ const Messages: React.FC<{ messages: any[] }> = ({ messages }) => {
 											</span>
 
 											<div
-												className={`prose prose-invert prose-sm max-w-none rounded-2xl p-4 shadow-lg border ${
-													isAssistant
-														? "bg-[#2D3249]/60 border-white/5 text-zinc-200 rounded-tl-none"
-														: "bg-zinc-800 border-white/10 text-zinc-100 rounded-tr-none text-left"
-												}`}
+												className={`prose prose-invert prose-sm max-w-none rounded-2xl p-4 shadow-lg border ${isAssistant
+													? "bg-[#2D3249]/60 border-white/5 text-zinc-200 rounded-tl-none"
+													: "bg-zinc-800 border-white/10 text-zinc-100 rounded-tr-none text-left"
+													}`}
 											>
 												<ReactMarkdown
 													components={{
@@ -150,6 +160,17 @@ const Messages: React.FC<{ messages: any[] }> = ({ messages }) => {
 												>
 													{textToShow}
 												</ReactMarkdown>
+												{isAssistant && (
+													<MessageReview
+														onAction={(rating, comment) =>
+															onEvaluate({
+																message_id: m.id,
+																rating,
+																comment,
+															})
+														}
+													/>
+												)}
 											</div>
 										</div>
 									</div>
@@ -185,8 +206,8 @@ const Input: React.FC<{ onSubmit: (val: string) => void }> = ({ onSubmit }) => {
 
 	return (
 		/* z-20: Keeps the input on top of scrolling messages.
-       bg-gradient: Mask messages as they scroll up. 
-    */
+	   bg-gradient: Mask messages as they scroll up. 
+	*/
 		<div className="absolute bottom-0 left-0 right-0 z-20 bg-gradient-to-t from-[#3B4159] via-[#3B4159] to-transparent pt-24 pb-6 px-4">
 			<div className="max-w-3xl mx-auto flex flex-col items-center">
 				{/* Floating Input Container */}

@@ -3,6 +3,7 @@ import { useAuth } from "@/features/auth/hooks/useAuth";
 import type { Conversation, Message } from "../types";
 import { useApi } from "./useApi";
 import { useSocket } from "./useSocket";
+import type { MessageReview } from "@/features/review/types";
 
 export const useChat = (initialConversations: Conversation[] = []) => {
 	const { user, isLoading } = useAuth();
@@ -156,10 +157,10 @@ export const useChat = (initialConversations: Conversation[] = []) => {
 								// Replace our optimistic message with the real one from DB
 								m.id === optimisticMsg.id
 									? {
-											...m,
-											id: envelope.id,
-											correlationId: envelope.correlationId,
-										}
+										...m,
+										id: envelope.id,
+										correlationId: envelope.correlationId,
+									}
 									: m,
 							),
 						};

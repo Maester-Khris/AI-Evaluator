@@ -53,6 +53,27 @@ export const initSocketManager = (httpServer: any) => {
 			}
 		});
 
+		socket.on("response_evaluation", async (payload: any, ack: any) => {
+			try {
+				const { message_id, rating, comment } = payload;
+				console.log(`Received evaluation for message ${message_id}: ${rating} stars`);
+
+				const result = await ChatDAO.updateMessageEvaluation(message_id, {
+					rating,
+					evaluationComment: comment,
+				});
+
+				if (result) {
+					ack({ success: true, messageId: message_id });
+				} else {
+					ack({ error: "Message not found" });
+				}
+			} catch (error) {
+				console.error("Socket response_evaluation error:", error);
+				ack({ error: "Failed to process evaluation" });
+			}
+		});
+
 		socket.on("disconnect", () => {
 			console.log(`User disconnected: ${socket.id}`);
 		});
