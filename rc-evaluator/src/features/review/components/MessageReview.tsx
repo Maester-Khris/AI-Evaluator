@@ -28,7 +28,7 @@ export const MessageReview: React.FC<MessageReviewProps> = ({
     // If it's already submitted (or we just submitted it), show a compact version
     if (isSubmitted) {
         return (
-            <div className="mt-4 pt-3 border-t border-white/10 flex items-center justify-between">
+            <div className="mt-4 pt-3 border-white/10 flex items-center justify-between">
                 <div className="flex items-center gap-1">
                     {[1, 2, 3, 4, 5].map((star) => (
                         <Star
