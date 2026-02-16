@@ -5,6 +5,7 @@ import { AuthUIProvider } from "./features/auth/context/authui.context";
 import { ChatContainer } from "./features/chat/components/ChatContainer";
 import { GlobalNotification } from "./features/notifications/globalNotification";
 import { OnlineStatusChecker } from "./features/notifications/OnlineStatusChecker";
+import { AppRouter } from "./routes";
 
 function App() {
 	useEffect(() => {
@@ -18,7 +19,8 @@ function App() {
 	return (
 		<AuthProvider>
 			<AuthUIProvider>
-				<ChatContainer />
+				{/* <ChatContainer /> */}
+				<AppRouter />
 				<GlobalNotification />
 				<OnlineStatusChecker />
 			</AuthUIProvider>

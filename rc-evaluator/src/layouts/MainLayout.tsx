@@ -7,11 +7,12 @@ interface MainLayoutProps {
 
 const MainLayout = ({ children, sidebar }: MainLayoutProps) => {
 	return (
-		<div className="flex h-screen w-full overflow-hidden bg-[#3B4159]">
-			<aside className="w-72 hidden md:flex flex-col bg-zinc-950">
-				{sidebar}
-			</aside>
-			<main className="flex-1 h-full relative">{children}</main>
+		<div className="flex h-screen w-full bg-slate-950 overflow-hidden">
+			{sidebar}
+
+			<main className="flex-1 flex flex-col relative bg-[#2b3142]">
+				{children}
+			</main>
 		</div>
 	);
 };
