@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 import { Button } from '../../common/ui/button';
 import { Footer } from '@/features/marketing/components/Footer';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { Star, MousePointer2 } from 'lucide-react';
 
 
@@ -44,13 +44,31 @@ export const HomePage = () => {
             </motion.div>
 
             <div className="space-y-4">
-              <div className="flex items-center gap-2 text-blue-400">
-                <span className="opacity-50 text-xs">READY</span>
+              <motion.div className="flex">
+                <span className="mr-2 text-blue-400">$</span>
                 <motion.p>
-                  {/* Typing animation logic here */}
-                  $ user.prompt("run_eval")
+                  {"user.prompt(\"run_eval\")".split("").map((char, i) => (
+                    <motion.span className='text-blue-400'
+                      key={i}
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      transition={{
+                        delay: 0.5 + (i * 0.1),
+                        duration: 0.01,
+                        repeat: Infinity,
+                        repeatDelay: 4 // Match with total cycle
+                      }}
+                    >
+                      {char}
+                    </motion.span>
+                  ))}
+                  <motion.span
+                    animate={{ opacity: [0, 1, 0] }}
+                    transition={{ duration: 0.8, repeat: Infinity }}
+                    className="inline-block w-1.5 h-4 bg-blue-500 ml-1 translate-y-0.5"
+                  />
                 </motion.p>
-              </div>
+              </motion.div>
 
               <motion.div
                 initial={{ opacity: 0, y: 10 }}

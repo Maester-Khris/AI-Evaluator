@@ -8,7 +8,7 @@ export const technicalComponents = {
         const codeValue = String(children).replace(/\n$/, "");
 
         return !inline && match ? (
-            <div className="my-6 rounded-lg border border-white/10 bg-[#010409] overflow-hidden shadow-2xl">
+            <div className="my-6 rounded-lg bg-[#010409] overflow-hidden shadow-2xl">
                 <div className="flex items-center justify-between px-4 py-2 bg-white/[0.03] border-b border-white/5">
                     <span className="text-[10px] font-mono text-slate-500 uppercase tracking-widest">{match[1]}</span>
                     <button

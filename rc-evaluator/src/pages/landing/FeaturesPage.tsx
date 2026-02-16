@@ -21,28 +21,12 @@ export const FeaturesPage = () => {
     },
     {
       name: "Pro",
-      price: "$29",
+      price: "$__",
       desc: "Everything in Starter, plus advanced behavior tracking.",
       features: ["Persistent Session History", "Behavioral Dataset Export", "Priority Redis Pipeline", "Email Support"],
       cta: "Get Started",
       highlight: true
     }
-    // {
-    //   name: "Scale",
-    //   price: "$299",
-    //   desc: "Build and align at production scale.",
-    //   features: ["Team Collaboration", "API Access (Node/Python)", "Custom Fine-tuning Loops", "99.9% Uptime SLA"],
-    //   cta: "Get Started",
-    //   variant: "outline"
-    // },
-    // {
-    //   name: "Enterprise",
-    //   price: "Custom",
-    //   desc: "Deep alignment and security for large organizations.",
-    //   features: ["SSO & RBAC", "Dedicated GPU Compute", "On-premise Deployment", "24/7 Premium Support"],
-    //   cta: "Contact Us",
-    //   variant: "outline"
-    // }
   ];
 
   return (
