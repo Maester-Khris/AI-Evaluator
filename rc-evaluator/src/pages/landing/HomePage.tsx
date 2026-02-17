@@ -2,7 +2,6 @@ import { motion } from "framer-motion";
 import {
 	Cpu,
 	MousePointer2,
-	Quote,
 	RefreshCw,
 	Star,
 	UserCheck,
@@ -110,9 +109,9 @@ export const HomePage = () => {
 										animate={
 											s === 4
 												? {
-														scale: [1, 1.3, 1],
-														color: ["#475569", "#facc15", "#facc15"],
-													}
+													scale: [1, 1.3, 1],
+													color: ["#475569", "#facc15", "#facc15"],
+												}
 												: {}
 										}
 										transition={{ delay: 3, duration: 0.5 }}
