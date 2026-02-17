@@ -72,5 +72,8 @@ export const useApi = () => {
 			body: JSON.stringify({ rating, evaluationComment: comment }),
 		});
 
-	return { getMessages, getHistory, sendMessage, evaluateMessage };
+	// GET /api/health
+	const checkHealth = () => fetchWithAuth("/health");
+
+	return { getMessages, getHistory, sendMessage, evaluateMessage, checkHealth };
 };

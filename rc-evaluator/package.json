@@ -6,7 +6,9 @@
 	"scripts": {
 		"dev": "vite --open",
 		"build": "tsc -b && vite build",
-		"lint": "eslint .",
+		"lint": "biome check .",
+		"lint:fix": "biome check --write .",
+		"format": "biome format . --write",
 		"preview": "vite preview"
 	},
 	"dependencies": {
@@ -24,7 +26,7 @@
 		"react-router-dom": "^7.13.0",
 		"react-syntax-highlighter": "^16.1.0",
 		"socket.io-client": "^4.8.3",
-		"tailwind-merge": "^3.4.0",
+		"tailwind-merge": "^3.4.1",
 		"tailwindcss": "^4.1.18",
 		"uuid": "^13.0.0",
 		"zustand": "^5.0.11"

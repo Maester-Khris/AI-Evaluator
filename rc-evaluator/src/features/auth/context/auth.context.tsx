@@ -1,4 +1,4 @@
-import React, {
+import {
 	createContext,
 	type ReactNode,
 	useCallback,
@@ -120,7 +120,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 				localStorage.removeItem("temp_conversation_ids");
 
 				// Optional: Trigger a storage event if other tabs need to know (not strictly necessary for SPA)
-				window.dispatchEvent(new CustomEvent('auth:migration', { detail: conversationMappings }));
+				window.dispatchEvent(
+					new CustomEvent("auth:migration", { detail: conversationMappings }),
+				);
 			}
 
 			localStorage.setItem("token", accessToken);
@@ -159,7 +161,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 				localStorage.removeItem("guest_id");
 				localStorage.removeItem("temp_conversation_ids");
 
-				window.dispatchEvent(new CustomEvent('auth:migration', { detail: conversationMappings }));
+				window.dispatchEvent(
+					new CustomEvent("auth:migration", { detail: conversationMappings }),
+				);
 			}
 
 			localStorage.setItem("token", accessToken);

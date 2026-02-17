@@ -2,9 +2,6 @@ import { useEffect } from "react";
 import { v4 as uuidv4 } from "uuid";
 import { AuthProvider } from "@/features/auth/context/auth.context";
 import { AuthUIProvider } from "./features/auth/context/authui.context";
-import { ChatContainer } from "./features/chat/components/ChatContainer";
-import { GlobalNotification } from "./features/notifications/globalNotification";
-import { OnlineStatusChecker } from "./features/notifications/OnlineStatusChecker";
 import { AppRouter } from "./routes";
 
 function App() {
@@ -19,10 +16,7 @@ function App() {
 	return (
 		<AuthProvider>
 			<AuthUIProvider>
-				{/* <ChatContainer /> */}
 				<AppRouter />
-				<GlobalNotification />
-				<OnlineStatusChecker />
 			</AuthUIProvider>
 		</AuthProvider>
 	);

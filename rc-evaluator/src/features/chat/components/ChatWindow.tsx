@@ -4,8 +4,6 @@ import { ScrollArea } from "@/common/ui/scroll-area";
 import { Textarea } from "@/common/ui/textarea";
 import type { MessageReview as MessageReviewType } from "@/features/review/types"; // Type
 
-
-
 type ChatWindowComponent = React.FC<{ children: React.ReactNode }> & {
 	Messages: React.FC<{
 		messages: any[];
@@ -14,7 +12,6 @@ type ChatWindowComponent = React.FC<{ children: React.ReactNode }> & {
 
 	Input: React.FC<{ onSubmit: (val: string) => void }>;
 };
-
 
 // 1. Parent Wrapper: Now uses a darker, unified background
 export const ChatWindow: ChatWindowComponent = ({ children }) => {

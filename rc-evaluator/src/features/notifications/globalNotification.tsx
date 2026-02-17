@@ -1,9 +1,14 @@
 import { AlertCircle, CheckCircle, Info, X } from "lucide-react";
 import { useEffect } from "react";
+import { useLocation } from "react-router-dom";
 import { useNotification } from "@/hooks/useNotification";
 
 export const GlobalNotification = () => {
 	const { message, type, clear } = useNotification();
+	const { pathname } = useLocation();
+
+	// Don't show notifications on public marketing pages
+	const isPublicPage = ["/", "/features", "/docs"].includes(pathname);
 
 	useEffect(() => {
 		if (message) {
@@ -12,7 +17,7 @@ export const GlobalNotification = () => {
 		}
 	}, [message, clear]);
 
-	if (!message) return null;
+	if (!message || isPublicPage) return null;
 
 	const styles = {
 		error: "bg-red-500/10 border-red-500/50 text-red-200",

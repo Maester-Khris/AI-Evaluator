@@ -65,15 +65,22 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({
 								<li key={c.id}>
 									<button
 										onClick={() => onSelect(c.id)}
-										className={`group relative w-full text-left p-3 rounded-xl flex items-start gap-3 transition-all ${isActive ? "bg-blue-500/10 border border-blue-500/20" : "hover:bg-white/5 border border-transparent"
-											}`}
+										className={`group relative w-full text-left p-3 rounded-xl flex items-start gap-3 transition-all ${
+											isActive
+												? "bg-blue-500/10 border border-blue-500/20"
+												: "hover:bg-white/5 border border-transparent"
+										}`}
 									>
 										<div className="mt-0.5 flex-shrink-0">
-											<MessageSquare className={`w-3.5 h-3.5 ${isActive ? "text-blue-400" : "text-zinc-600"}`} />
+											<MessageSquare
+												className={`w-3.5 h-3.5 ${isActive ? "text-blue-400" : "text-zinc-600"}`}
+											/>
 										</div>
 
 										<div className="flex-1 min-w-0">
-											<div className={`text-xs font-bold truncate ${isActive ? "text-white" : "text-zinc-400"}`}>
+											<div
+												className={`text-xs font-bold truncate ${isActive ? "text-white" : "text-zinc-400"}`}
+											>
 												{c.title || "Untitled Session"}
 											</div>
 											{/* Removed italics, used mono-style for content preview */}
@@ -119,7 +126,6 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({
 			</div>
 		</aside>
 	);
-
 };
 
 export default ChatSidebar;
