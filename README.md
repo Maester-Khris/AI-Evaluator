@@ -1,184 +1,113 @@
-# AI Evaluator (SaaS)
+# AI Evaluator: The Enterprise-Grade Reliability Layer for LLMs
 
-A focused, developer-oriented README for the AI Evaluator SaaS: a two-service architecture that separates API/domain logic (Node.js + TypeScript + Prisma) from inference (Python + FastAPI).
+[![Framework: React](https://img.shields.io/badge/Framework-React-61DAFB?style=flat-square&logo=react)](https://reactjs.org/)
+[![Backend: Node.js](https://img.shields.io/badge/Backend-Node.js-6DA55F?style=flat-square&logo=node.js)](https://nodejs.org/)
+[![Inference: FastAPI](https://img.shields.io/badge/Inference-FastAPI-05998B?style=flat-square&logo=fastapi)](https://fastapi.tiangolo.com/)
+[![Database: PostgreSQL](https://img.shields.io/badge/Database-PostgreSQL-336791?style=flat-square&logo=postgresql)](https://www.postgresql.org/)
+[![ORM: Prisma](https://img.shields.io/badge/ORM-Prisma-2D3748?style=flat-square&logo=prisma)](https://www.prisma.io/)
+[![Language: TypeScript](https://img.shields.io/badge/Language-TypeScript-007ACC?style=flat-square&logo=typescript)](https://www.typescriptlang.org/)
+[![Language: Python](https://img.shields.io/badge/Language-Python-3776AB?style=flat-square&logo=python)](https://www.python.org/)
+[![Styling: TailwindCSS](https://img.shields.io/badge/Styling-TailwindCSS-38B2AC?style=flat-square&logo=tailwind-css)](https://tailwindcss.com/)
+[![UI: Shadcn](https://img.shields.io/badge/UI-Shadcn-000000?style=flat-square&logo=shadcnui)](https://ui.shadcn.com/)
 
-## System Architecture 
-
-Overview: The system is implemented as two cooperating services:
-
-- **Backend API (Node.js / Express / TypeScript)**
-  - Responsibilities: Authentication, persistence (Postgres via Prisma), chat domain logic (conversation and message management), and evaluation workflows.
-  - Entry point: `node-evaluator-backend/src/index.ts` (run via `tsx` in development).
-
-- **Inference Service (Python / FastAPI)**
-  - Responsibilities: Hosting model inference endpoints (LLMs, embeddings, or other AI providers). The repo contains an inference placeholder (`python-llm-api/`) intended for a FastAPI-based service that exposes inference endpoints to the backend.
-
-Simple ASCII diagram:
-
-```
-[Browser SPA] <--HTTP--> [Node.js Backend (Express + Prisma)] <--HTTP--> [Python FastAPI Inference Service]
-                             |                                    |
-                             |-- Postgres (Persistence) ----------|
-```
-
-## Tech Stack & Rationale 
-
-| Layer | Technology | Purpose |
-|---|---:|---|
-| API | Node.js (ESM), TypeScript | Strong typing, modern ESM workflow, fast developer feedback using `tsx`.
-| DB | PostgreSQL | Production-grade DB with JSONB & GIN for message previews and fast queries.
-| ORM | Prisma v7 (+ Driver Adapters) | Type-safe DB access. This repo uses the Postgres driver adapter (`@prisma/adapter-pg`) for connection pooling.
-| Inference | Python, FastAPI | Lightweight API for model inference; decouples compute from domain logic for scaling and deployment flexibility.
+**AI-Evaluator** is an open-source SaaS infrastructure designed to bridge the gap between stochastic `LLM` outputs and deterministic business requirements. By implementing a sophisticated **Human-in-the-Loop (HITL)** evaluation framework, we empower developers and enterprises to build, verify, and scale reliable AI applications.
 
 ---
 
-## Database & Persistence (Prisma) 
+## The Investor Perspective
 
-Key details:
+### The Problem
+Traditional AI deployments suffer from a "Black Box" problem. Without a structured way to evaluate, rate, and correct `Large Language Model` responses in real-time, businesses face significant risks in production reliability and brand safety.
 
-- **Prisma version**: v7.x (see `node-evaluator-backend/package.json`).
-- **Custom generator path**: The Prisma `generator client` uses a custom `output` path so the generated client is available to the TypeScript runtime in `src/generated/prisma` (generator configured in `schema.prisma`).
-- **Driver adapters**: A Postgres adapter (`@prisma/adapter-pg`) is used to plug in a `pg.Pool` for robust connection pooling from `src/config/prisma.ts`.
-- **Migrations**: Migrations are present in `node-evaluator-backend/src/prisma/migrations` (SQL migration files are included). For development use `npx prisma migrate dev`. For production migrations use `npx prisma migrate deploy`.
-
-## 🛠 Tech Stack
-![React](https://img.shields.io/badge/react-%2320232d.svg?style=for-the-badge&logo=react&logoColor=%2361DAFB)
-![Vite](https://img.shields.io/badge/vite-%23646CFF.svg?style=for-the-badge&logo=vite&logoColor=white)
-![TailwindCSS](https://img.shields.io/badge/tailwindcss-%2338B2AC.svg?style=for-the-badge&logo=tailwind-css&logoColor=white)
-![TypeScript](https://img.shields.io/badge/typescript-%23007ACC.svg?style=for-the-badge&logo=typescript&logoColor=white)
-![Shadcn UI](https://img.shields.io/badge/shadcn%20ui-000000?style=for-the-badge&logo=shadcnui&logoColor=white)
-![Node.js](https://img.shields.io/badge/node.js-6DA55F?style=for-the-badge&logo=node.js&logoColor=white)
-
-## Project Structure
-The project follows a **Feature-Based Architecture**, ensuring that logic, components, and types are localized to their domain.
-
-```text
-src/
-├── common/              # Stateless UI Primitives (Shadcn)
-│   └── ui/              # Buttons, Inputs, Textareas
-├── features/            # Domain-specific logic
-│   └── chat/
-│       ├── components/  # ChatSidebar, ChatWindow (Compound), ChatContainer
-│       ├── hooks/       # useChat (Logic & API state)
-│       └── types.ts     # Domain interfaces (Message, Conversation)
-├── layouts/             # Page skeletons
-│   └── MainLayout.tsx   # 2-Layer Grid (Sidebar + Content)
-├── hooks/               # App-wide utility hooks
-└── App.tsx              # Application Entry
-```
+### Our Solution
+`AI-Evaluator` provides a specialized diagnostic layer. Built on a scalable **two-service architecture**, it separates core business logic (managed by `Node.js` & `TypeScript`) from heavy model inference (handled by `Python` & `FastAPI`). This allows for:
+- **Traceable Correction Paths:** Every AI interaction is captured in `PostgreSQL` via `Prisma` for future fine-tuning.
+- **Cost-Effective Scaling:** Independent scaling of the inference layer (`Python`) and the API layer (`Node.js`).
+- **Rapid Iteration:** A modern `React` frontend built with `Vite` and `TailwindCSS` for immediate internal deployment.
 
 ---
 
-## Key Features — Chat History & Evaluation 
+## Advanced Tech Stack (Tagged)
 
-The backend implements a robust, developer-friendly chat model with the following behaviors:
+### Frontend Engine
+- **Core:** `React 18` + `Vite` for ultra-fast development and optimized production bundles.
+- **Language:** `TypeScript` (Strict Mode) ensures enterprise-grade type safety.
+- **Styling:** `TailwindCSS` for a modern, responsive design system.
+- **Components:** `Shadcn UI` + `Lucide React` icons for a premium, accessible user experience.
+- **Logic Handling:** `Framer Motion` for smooth micro-animations and `React Router` for seamless navigation.
 
-- **Conversation-first model**: Conversations are top-level objects. Each conversation contains ordered messages (chronological by `createdAt`).
-- **Sidebar (recency-sorted)**: The UI sidebar lists conversations for a user sorted by `updatedAt DESC`. The backend ensures `updatedAt` is "touched" when a conversation receives a new message so the most recently active conversations surface to the top.
-- **Message storage**: `Message.content` is JSONB — supports structured content like code blocks, metadata, and message sub-objects for rich rendering.
-- **Save flow (atomic & transactional)**:
-  - If the request includes no `conversationId`, the backend uses a nested create to atomically create a `Conversation` and the first `Message` in one DB operation.
-  - If the request supplies `conversationId`, the backend uses a transaction to create the new `Message` and update the `Conversation.updatedAt` in an atomic operation.
-- **Evaluation workflow**: Messages can be evaluated via `PATCH /api/chat/message/:id/evaluate`. The API updates `rating`, sets `evaluationAt` timestamp, and optionally stores `evaluationComment`.
+### Backend Infrastructure
+- **Runtime:** `Node.js` (ESM Architecture) for high-concurrency request handling.
+- **Framework:** `Express.js` provides a robust, predictable API structure.
+- **Persistence:** `PostgreSQL` utilizing `JSONB` for storing complex AI message structures and metadata.
+- **ORM:** `Prisma v7` with `Driver Adapters` (`@prisma/adapter-pg`) for high-performance connection pooling.
+- **Evaluation Logic:** Native `PATCH` workflows for real-time rating and evaluation storage.
 
-API (focused) endpoints:
-
-| Endpoint | Method | Purpose |
-|---|---:|---|
-| POST `/api/chat/message` | POST | Save a message; create conversation (if absent) or append to conversation. Accepts `sender`, `content` (JSON), optional `conversationId`, and `userId` for new conversations.
-| PATCH `/api/chat/message/:id/evaluate` | PATCH | Update evaluation fields (`rating`, `evaluationComment`). Sets `evaluationAt`.
-| GET `/api/chat/history/:userId` | GET | Return all conversations for a user with messages (messages ordered asc).
-| GET `/api/chat/sidebar/:userId` | GET | Return conversation previews (latest message, title, updatedAt) sorted by `updatedAt` desc for sidebar.
-| GET `/api/chat/conversation/:id` | GET | Return full conversation with messages ordered asc.
+### AI Inference Layer
+- **Framework:** `FastAPI` (`Python 3.9+`) designed for high-performance asynchronous `LLM` calls.
+- **Inference Models:** Extensible interface to support `OpenAI`, `Anthropic`, and local `Llama`/`DeepSeek` models.
 
 ---
 
-## Environment Setup (.env) 
+## System Design (Base Architecture)
 
-Two services with separate expectations. Keep secrets out of VCS; `.env` is already in `.gitignore`.
 
-Node Backend (`node-evaluator-backend`) — example environment variables:
-
-| Name | Required | Notes |
-|---|---:|---|
-| DATABASE_URL | yes | Postgres DSN (e.g. `postgresql://user:pass@localhost:5432/dbname?schema=public`). Prisma uses this to connect. `src/config/prisma.ts` resolves `src/.env` when run from source to ensure predictable DB loading.
-| JWT_SECRET | yes | JWT signing secret (used for auth tokens).
-| PORT | no | Defaults to `3000` if not set.
-
-FastAPI Inference Service (`python-llm-api`) — example variables (implementer-provided):
-
-| Name | Required | Notes |
-|---|---:|---|
-| FASTAPI_PORT | no | default `8000`.
-| INFERENCE_MODEL_URL | yes | Model server or provider endpoint.
-| INFERENCE_API_KEY | conditional | If your model provider requires an API key.
-| BACKEND_URL | yes | If inference needs to call the backend or be called by it (e.g., webhook URL).
-
-Note: `db-init.sh` is provided to launch a local Postgres Docker instance and prints a sample `DATABASE_URL` for local development.
+![Base arC](./assets/diag.png)
 
 ---
 
-## Development Workflow & Commands
+## Key Enterprise Features
 
-Quick start (local dev):
-
-1. Start Postgres (recommended using provided script):
-
-```bash
-./db-init.sh
-# This prints a recommended DATABASE_URL you can copy into your .env
-```
-
-2. Set environment (example `node-evaluator-backend/src/.env` or root `.env`):
-
-- `DATABASE_URL=postgresql://admin:securepassword123@localhost:5432/aievaluator?schema=public`
-- `JWT_SECRET=your_secret_here`
-- `PORT=3000`
-
-3. Generate Prisma client and run migrations:
-
-```bash
-cd node-evaluator-backend
-npx prisma generate              # generate the client (reflects custom generator path)
-npm run prisma:migrate          # this runs `npx prisma migrate dev` (development migration)
-# For production: npx prisma migrate deploy
-```
-
-4. Run backend locally (development):
-
-```bash
-npm install
-npm run dev                      # uses `tsx` (script: `tsx watch src/index.ts`)
-```
-
-Build & production (backend):
-
-```bash
-npm run build                    # runs `npx prisma generate && tsc`
-npm start                        # runs `node dist/index.ts`
-```
-
-FastAPI inference service (example):
-
-- Install: `pip install -r requirements.txt` (requirements should include `fastapi`, `uvicorn`, and model deps).
-- Run locally: `uvicorn main:app --reload --port 8000`
+- **Atomic Transactional History:** Utilizing `Prisma` transactions to ensure message integrity between users and AI bots.
+<!-- - **Context-Aware Sidebar:** Intelligent sorting of conversations using `PostgreSQL` `updatedAt` timestamps for maximum user productivity.
+- **Rich Structured Content:** Full support for code blocks, specialized `JSON` metadata, and multi-modal responses stored in `PostgreSQL` `JSONB` columns.
+- **Real-time Diagnostic Dashboard:** A dedicated interface for domain experts to evaluate AI accuracy without touching a single line of code. -->
 
 ---
 
-## Operational Notes & Best Practices 
+## Roadmap
 
-- **DB indexes**: Ensure GIN indexes on JSONB columns are present in your migration to support fast searches and previews.
-- **Connection pooling**: The repo leverages a Postgres pool passed into Prisma via `@prisma/adapter-pg` for production-quality pooling.
-- **Separation of concerns**: Keep inference work in the FastAPI service to enable horizontal scaling and different resource profiles (GPU/CPU).
-- **Avoid shipping artifacts**: `node_modules` and generated clients are build artifacts and intentionally excluded from the repository.
+- [x] **Phase 1: Foundation** - Dual-service architecture with `Node.js` and `FastAPI`.
+<!-- - [x] **Phase 2: HITL Integration** - Basic evaluation and rating system for `React` messages.
+- [ ] **Phase 3: Deep Insights** - Advanced analytics dashboard visualizing `LLM` drift and alignment scores over time.
+- [ ] **Phase 4: Multi-Model Gateway** - Automated A/B testing between different `LLM` providers (e.g., comparing `GPT-4` vs `Claude 3.5`). -->
 
 ---
 
-## Useful Files & Locations 
+## Collaboration & Investment
 
-- Backend entry: `node-evaluator-backend/src/index.ts`
-- Prisma config: `node-evaluator-backend/src/prisma.config.ts` and schema at `src/generated/prisma/schema.prisma` (generator points to `../generated/prisma`).
-- Migrations: `node-evaluator-backend/src/prisma/migrations/`
-- DB bootstrap: `db-init.sh` (local Docker-based Postgres)
-- Chat domain: `node-evaluator-backend/src/api/chat/*` (routes + service + DAO)
+We are building the future of AI reliability. We welcome:
+- **Collaborators:** `Fullstack Developers` (TS/React) and `AI Engineers` (Python/FastAPI) looking to contribute to a high-impact open-source project.
+- **Investors:** Visionaries who recognize that the next decade of AI isn't just about *generation*, but *verification*.
+
+For partnership inquiries, please open a GitHub Issue or reach out via our [Project Website].
+
+---
+
+## Quick Start for Developers
+
+### Basic Installation
+
+1. **Database and Redis Bootstrap:**
+   ```bash
+   chmod +x ./local.entry.sh
+   ./local.entry.sh 
+   # Launches a Dockerized PostgreSQL and Redis instance
+   ```
+
+2. **Backend Setup (`Node.js`):**
+   ```bash
+   cd node-evaluator-backend
+   npm install
+   npm run prisma:migrate
+   npm run dev
+   ```
+
+3. **Frontend Setup (`React`):**
+   ```bash
+   cd rc-evaluator
+   npm install
+   npm run dev
+   ```
+
 
