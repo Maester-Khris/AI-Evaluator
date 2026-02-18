@@ -14,6 +14,8 @@ node_modules/
 jspm_packages/
 dist/
 dist-ssr/
+# Allow the frontend lib folder specifically
+!rc-evaluator/src/lib/
 build/
 .cache/
 .parcel-cache/
