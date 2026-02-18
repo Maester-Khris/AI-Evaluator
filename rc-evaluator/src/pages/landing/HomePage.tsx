@@ -14,18 +14,18 @@ export const HomePage = () => {
 	return (
 		<div className="bg-slate-950 text-white selection:bg-blue-500/30">
 			{/* HERO SECTION */}
-			<section className="relative h-screen flex items-center overflow-hidden px-6">
+			<section className="relative min-h-screen flex items-center overflow-hidden px-6 py-20 lg:py-0">
 				<div className="max-w-7xl mx-auto grid lg:grid-cols-2 gap-12 items-center">
-					<div className="z-10">
-						<h1 className="text-6xl font-extrabold leading-tight mb-6 bg-gradient-to-r from-white via-blue-100 to-slate-400 bg-clip-text text-transparent">
+					<div className="z-10 text-center lg:text-left">
+						<h1 className="text-4xl md:text-6xl font-extrabold leading-tight mb-6 bg-gradient-to-r from-white via-blue-100 to-slate-400 bg-clip-text text-transparent">
 							Elevate AI Intelligence <br /> through Human Insight.
 						</h1>
-						<p className="text-slate-400 text-lg mb-8 max-w-lg leading-relaxed">
+						<p className="text-slate-400 text-lg mb-8 max-w-lg mx-auto lg:mx-0 leading-relaxed">
 							RC-Evaluator bridges the gap between raw LLM output and
 							production-ready intelligence. Leverage human expertise to train
 							models that truly understand your unique requirements.
 						</p>
-						<div className="flex gap-4">
+						<div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
 							<Button
 								size="lg"
 								className="bg-blue-600 hover:bg-blue-500 shadow-xl shadow-blue-500/20"
@@ -128,11 +128,11 @@ export const HomePage = () => {
 			<section className="py-24 px-6 relative overflow-hidden">
 				<div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-px bg-gradient-to-r from-transparent via-blue-500/20 to-transparent" />
 				<div className="max-w-6xl mx-auto">
-					<div className="text-center mb-16">
-						<h2 className="text-4xl font-bold tracking-tight mb-4 text-white">
+					<div className="text-center mb-16 px-4">
+						<h2 className="text-3xl md:text-4xl font-bold tracking-tight mb-4 text-white">
 							How It Works
 						</h2>
-						<p className="text-slate-400 max-w-2xl mx-auto">
+						<p className="text-slate-400 max-w-2xl mx-auto text-sm md:text-base">
 							A closed-loop system designed to continuously refine and align
 							your AI agents.
 						</p>
