@@ -188,8 +188,8 @@ export const HomePage = () => {
 
 					<div className="grid md:grid-cols-2 gap-12">
 						{/* Card 1: Static */}
-						<div className="bg-[#030712] border border-white/10 p-12 rounded-[2.5rem] transition-all hover:border-white/20">
-							<h3 className="text-3xl font-bold mb-8 text-white text-balance">
+						<div className="bg-[#030712] border border-white/10 p-8 md:p-12 rounded-3xl md:rounded-[2.5rem] transition-all hover:border-white/20">
+							<h3 className="text-2xl md:text-3xl font-bold mb-8 text-white text-balance">
 								Traditional <br /> Contextualization
 							</h3>
 							<ul className="space-y-6">
@@ -211,13 +211,13 @@ export const HomePage = () => {
 						</div>
 
 						{/* Card 2: Behavior-Aware (SaaS Focus) */}
-						<div className="bg-[#030712] border border-blue-500/30 p-10 rounded-[2.5rem] relative overflow-hidden group shadow-[0_0_50px_-12px_rgba(59,130,246,0.2)]">
+						<div className="bg-[#030712] border border-blue-500/30 p-8 md:p-10 rounded-3xl md:rounded-[2.5rem] relative overflow-hidden group shadow-[0_0_50px_-12px_rgba(59,130,246,0.2)]">
 							<div className="absolute top-0 right-0 p-6">
 								<span className="bg-blue-600 text-[10px] font-bold px-3 py-1 rounded-full text-white uppercase tracking-wider">
 									RC-Evaluator Method
 								</span>
 							</div>
-							<h3 className="text-3xl font-bold mb-8 text-white">
+							<h3 className="text-2xl md:text-3xl font-bold mb-8 text-white">
 								Behavior-Aware Intelligence
 							</h3>
 							<ul className="space-y-6">
