@@ -63,8 +63,8 @@ export const FeaturesPage = () => {
 
 	return (
 		<>
-			<div className="py-20 px-4 max-w-6xl mx-auto">
-				<h2 className="text-3xl font-bold mb-12 text-center">
+			<div className="py-20 px-6 max-w-6xl mx-auto">
+				<h2 className="text-3xl md:text-4xl font-bold mb-12 text-center text-white">
 					Engineered for Quality
 				</h2>
 				<div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
@@ -82,8 +82,8 @@ export const FeaturesPage = () => {
 			</div>
 			<section className="py-24 px-4 bg-[#020617]">
 				<div className="max-w-7xl mx-auto">
-					<div className="text-center mb-16">
-						<h2 className="text-4xl font-black tracking-tighter mb-4 uppercase">
+					<div className="text-center mb-16 px-4">
+						<h2 className="text-3xl md:text-4xl font-black tracking-tighter mb-4 uppercase text-white">
 							Designed for Growth
 						</h2>
 						<p className="text-slate-500">
@@ -91,15 +91,14 @@ export const FeaturesPage = () => {
 						</p>
 					</div>
 
-					<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-16">
+					<div className="grid grid-cols-1 md:grid-cols-2 gap-8 lg:gap-16">
 						{plans.map((plan) => (
 							<div
 								key={plan.name}
-								className={`p-8 rounded-xl border flex flex-col ${
-									plan.highlight
+								className={`p-8 rounded-xl border flex flex-col ${plan.highlight
 										? "bg-white text-slate-950 border-white shadow-[0_0_40px_rgba(255,255,255,0.1)]"
 										: "bg-[#030712] border-white/10 text-white"
-								}`}
+									}`}
 							>
 								<div className="mb-8">
 									<h3 className="text-xs font-bold uppercase tracking-widest mb-4 opacity-70">
@@ -135,11 +134,10 @@ export const FeaturesPage = () => {
 								</ul>
 
 								<Button
-									className={`w-full font-bold uppercase text-[10px] tracking-widest h-12 ${
-										plan.highlight
+									className={`w-full font-bold uppercase text-[10px] tracking-widest h-12 ${plan.highlight
 											? "bg-slate-950 text-white"
 											: "bg-white/5 border-white/10 hover:bg-white/10"
-									}`}
+										}`}
 								>
 									{plan.cta}
 								</Button>
