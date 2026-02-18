@@ -3,6 +3,7 @@ import { ChatContainer } from "@/features/chat/components/ChatContainer";
 import { GlobalNotification } from "@/features/notifications/globalNotification";
 import { OnlineStatusChecker } from "@/features/notifications/OnlineStatusChecker";
 import { PublicLayout } from "@/layouts/PublicLayout";
+import { DocsPage } from "@/pages/landing/DocsPage";
 import { FeaturesPage } from "@/pages/landing/FeaturesPage";
 import { HomePage } from "@/pages/landing/HomePage";
 
@@ -16,6 +17,7 @@ export const AppRouter = () => {
 				<Route element={<PublicLayout />}>
 					<Route path="/" element={<HomePage />} />
 					<Route path="/features" element={<FeaturesPage />} />
+					<Route path="/docs" element={<DocsPage />} />
 				</Route>
 
 				{/* Protected/App Routes */}

@@ -9,10 +9,16 @@ import {
 import { Link } from "react-router-dom";
 import { Footer } from "@/features/marketing/components/Footer";
 import { Button } from "../../common/ui/button";
+import { SEO } from "../../common/components/SEO";
 
 export const HomePage = () => {
 	return (
 		<div className="bg-slate-950 text-white selection:bg-blue-500/30">
+			<SEO
+				title="Elevate AI Intelligence"
+				description="RC-Evaluator bridges the gap between raw LLM output and production-ready intelligence. Leverage human expertise to train models that truly understand your requirements."
+				canonical="https://rc-evaluator.com/"
+			/>
 			{/* HERO SECTION */}
 			<section className="relative min-h-screen flex items-center overflow-hidden px-6 py-20 lg:py-0">
 				<div className="max-w-7xl mx-auto grid lg:grid-cols-2 gap-12 items-center">

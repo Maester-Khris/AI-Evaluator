@@ -39,7 +39,10 @@ export const PublicLayout = () => {
 						>
 							Capabilities
 						</Link>
-						<Link to="#" className="hover:text-blue-400 transition-colors">
+						<Link
+							to="/docs"
+							className="hover:text-blue-400 transition-colors"
+						>
 							Docs
 						</Link>
 					</nav>
@@ -95,7 +98,7 @@ export const PublicLayout = () => {
 								Capabilities
 							</Link>
 							<Link
-								to="#"
+								to="/docs"
 								className="hover:text-blue-400 transition-colors"
 								onClick={() => setIsMenuOpen(false)}
 							>
