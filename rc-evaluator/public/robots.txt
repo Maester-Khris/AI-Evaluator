@@ -1,0 +1,8 @@
+User-agent: *
+Allow: /
+Allow: /features
+Allow: /docs
+Disallow: /chat
+Disallow: /api
+
+Sitemap: https://rc-evaluator.com/sitemap.xml

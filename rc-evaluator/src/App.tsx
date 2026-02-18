@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { v4 as uuidv4 } from "uuid";
+import { HelmetProvider } from "react-helmet-async";
 import { AuthProvider } from "@/features/auth/context/auth.context";
 import { AuthUIProvider } from "./features/auth/context/authui.context";
 import { AppRouter } from "./routes";
@@ -14,11 +15,13 @@ function App() {
 	}, []);
 
 	return (
-		<AuthProvider>
-			<AuthUIProvider>
-				<AppRouter />
-			</AuthUIProvider>
-		</AuthProvider>
+		<HelmetProvider>
+			<AuthProvider>
+				<AuthUIProvider>
+					<AppRouter />
+				</AuthUIProvider>
+			</AuthProvider>
+		</HelmetProvider>
 	);
 }
 
