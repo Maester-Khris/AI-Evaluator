@@ -1,89 +1,79 @@
-import { useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { useNotification } from "@/hooks/useNotification";
 import { useOnlineStatus } from "@/hooks/useOnlineStatus";
 import { useServerStatus } from "@/hooks/useServerStatus";
 
+
 const API_BASE = `${import.meta.env.VITE_API_HOST}/api`;
 
 export const OnlineStatusChecker = () => {
-	const { isOnline, isOffline } = useOnlineStatus();
-	const show = useNotification((state) => state.show);
-	const clear = useNotification((state) => state.clear);
+	const { isOffline } = useOnlineStatus();
+	const { show, clear } = useNotification();
 	const setAvailable = useServerStatus((state) => state.setAvailable);
 
-	const hasChecked = useRef(false);
-	const lastStatus = useRef<"active" | "degraded" | "unknown">("active");
-	const backoffDelay = useRef(5000); // Start with 5s backoff
-	const timerRef = useRef<any>(null);
+	const lastStatus = useRef<"active" | "degraded" | "unknown">("unknown");
+	const backoffDelay = useRef(5000);
+	const timerRef = useRef<number | null>(null);
+
+	const checkBackend = useCallback(async () => {
+		// Clear any existing timer to prevent race conditions during manual triggers
+		if (timerRef.current) clearTimeout(timerRef.current);
+
+		try {
+			const response = await fetch(`${API_BASE}/system/health`);
+			const data = await response.json().catch(() => ({}));
+
+			if (response.ok) {
+				setAvailable(true, data.dependencies);
+				if (lastStatus.current !== "active") {
+					clear();
+					lastStatus.current = "active";
+				}
+				// SUCCESS: Stop polling. The "Adaptive" part.
+				backoffDelay.current = 5000;
+				timerRef.current = null;
+				return;
+			} else {
+				throw new Error("Degraded");
+			}
+		} catch (error) {
+			setAvailable(false);
+			if (lastStatus.current !== "degraded") {
+				show("Connection lost. Retrying in background...", "error");
+				lastStatus.current = "degraded";
+			}
+
+			// FAILURE: Start/Continue polling with exponential backoff
+			backoffDelay.current = Math.min(backoffDelay.current * 2, 60000);
+			timerRef.current = setTimeout(checkBackend, backoffDelay.current);
+		}
+	}, [API_BASE, setAvailable, clear, show]);
 
 	useEffect(() => {
-		const checkBackend = async () => {
-			try {
-				const response = await fetch(`${API_BASE}/system/health`);
-				const data = await response.json().catch(() => ({}));
-
-				if (response.ok) {
-					setAvailable(true, data.dependencies);
-					if (lastStatus.current !== "active") {
-						clear();
-						lastStatus.current = "active";
-					}
-					backoffDelay.current = 30000; // Reset to 30s on success
-				} else {
-					setAvailable(false, data.dependencies);
-					if (lastStatus.current !== "degraded") {
-						show("Server is currently degraded or under maintenance.", "error");
-						lastStatus.current = "degraded";
-					}
-					// Double the backoff on failure, max 60s
-					backoffDelay.current = Math.min(backoffDelay.current * 2, 60000);
-				}
-			} catch (error) {
-				setAvailable(false);
-				if (lastStatus.current !== "degraded") {
-					show(
-						"Unable to connect to the server. Check your connection or backend status.",
-						"error",
-					);
-					lastStatus.current = "degraded";
-				}
-				backoffDelay.current = Math.min(backoffDelay.current * 2, 60000);
-			}
-
-			// Schedule next check
-			timerRef.current = setTimeout(checkBackend, backoffDelay.current);
-		};
-
+		// Handle physical network loss
 		if (isOffline) {
+			if (timerRef.current) clearTimeout(timerRef.current);
 			setAvailable(false);
-			if (lastStatus.current !== "unknown") {
-				show(
-					"You are currently offline. Some features may not work properly.",
-					"offline",
-				);
-				lastStatus.current = "unknown";
-			}
+			show("You are currently offline.", "offline");
+			lastStatus.current = "unknown";
 			return;
 		}
 
-		// Initial check with double-call prevention for StrictMode
-		if (!hasChecked.current) {
-			hasChecked.current = true;
-			checkBackend();
-		} else {
-			// If already checked, just ensure a timer is running
-			if (!timerRef.current) {
-				timerRef.current = setTimeout(checkBackend, backoffDelay.current);
-			}
-		}
+		// Trigger check on mount or when coming back online
+		checkBackend();
 
+		// Re-validate when user returns to tab (Lazy Validation)
+		const handleFocus = () => {
+			if (lastStatus.current === "active") checkBackend();
+		};
+
+		window.addEventListener("focus", handleFocus);
 		return () => {
 			if (timerRef.current) clearTimeout(timerRef.current);
-			timerRef.current = null;
-			// NOTE: We DON'T reset hasChecked here to prevent StrictMode double-fire
-			// It will be reset when the user re-enters the route (component re-mounts)
+			window.removeEventListener("focus", handleFocus);
 		};
-	}, [isOnline, isOffline, show, clear, setAvailable]);
+	}, [isOffline, checkBackend, show, setAvailable]);
 
 	return null;
 };
+
