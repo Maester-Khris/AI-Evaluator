@@ -2,6 +2,7 @@ import { ArrowUp, Terminal } from "lucide-react";
 import React, { useEffect, useRef } from "react";
 import { ScrollArea } from "@/common/ui/scroll-area";
 import { Textarea } from "@/common/ui/textarea";
+import { useServerStatus } from "@/hooks/useServerStatus";
 import type { MessageReview as MessageReviewType } from "@/features/review/types"; // Type
 
 type ChatWindowComponent = React.FC<{ children: React.ReactNode }> & {
@@ -31,6 +32,7 @@ const Messages: React.FC<{
 	onEvaluate: (evaluation: MessageReviewType) => void;
 }> = ({ messages, onEvaluate }) => {
 	const scrollRef = useRef<HTMLDivElement>(null);
+	const { isAvailable } = useServerStatus();
 
 	useEffect(() => {
 		if (scrollRef.current) {
@@ -76,7 +78,7 @@ const Messages: React.FC<{
 								Evaluation Ready
 							</h1>
 							<p className="text-[10px] font-bold tracking-[0.3em] text-slate-500 uppercase">
-								System Status: Optimal // Behavior Loop Active
+								System Status: {isAvailable ? "Optimal // Behavior Loop Active" : "Degraded // Reconnecting..."}
 							</p>
 						</div>
 					) : (
@@ -104,9 +106,10 @@ const Messages: React.FC<{
 // 3. The Input Box: Clean, single-line to multi-line floating bar
 const Input: React.FC<{ onSubmit: (val: string) => void }> = ({ onSubmit }) => {
 	const [value, setValue] = React.useState("");
+	const { isAvailable } = useServerStatus();
 
 	const handleAction = () => {
-		if (value.trim()) {
+		if (value.trim() && isAvailable) {
 			onSubmit(value.trim());
 			setValue("");
 		}
@@ -128,13 +131,14 @@ const Input: React.FC<{ onSubmit: (val: string) => void }> = ({ onSubmit }) => {
 						<Textarea
 							value={value}
 							onChange={(e) => setValue(e.target.value)}
-							className="flex-1 min-h-[48px] max-h-[200px] resize-none bg-transparent border-none text-slate-200 placeholder:text-slate-600 focus-visible:ring-0 py-3 px-4 text-sm font-medium leading-relaxed"
-							placeholder="Enter prompt for behavioral evaluation..."
+							disabled={!isAvailable}
+							className="flex-1 min-h-[48px] max-h-[200px] resize-none bg-transparent border-none text-slate-200 placeholder:text-slate-600 focus-visible:ring-0 py-3 px-4 text-sm font-medium leading-relaxed disabled:opacity-50"
+							placeholder={isAvailable ? "Enter prompt for behavioral evaluation..." : "System offline - Messaging disabled"}
 							onKeyDown={handleKeyDown}
 						/>
 						<button
 							onClick={handleAction}
-							disabled={!value.trim()}
+							disabled={!value.trim() || !isAvailable}
 							className="mb-1 mr-1 w-10 h-10 rounded-xl bg-blue-600 text-white hover:bg-blue-500 disabled:bg-slate-800 disabled:text-slate-500 transition-all flex items-center justify-center shadow-lg shadow-blue-900/20"
 						>
 							<ArrowUp size={20} strokeWidth={2.5} />
@@ -143,8 +147,8 @@ const Input: React.FC<{ onSubmit: (val: string) => void }> = ({ onSubmit }) => {
 				</div>
 
 				<p className="mt-4 text-[9px] text-slate-500 font-black tracking-[0.2em] uppercase opacity-60 flex items-center gap-2">
-					<span className="w-1 h-1 rounded-full bg-blue-500 animate-pulse" />
-					Verify Logic & Behavioral Alignment // AI-Generated Output
+					<span className={`w-1 h-1 rounded-full ${isAvailable ? "bg-blue-500 animate-pulse" : "bg-red-500 animate-none"}`} />
+					{isAvailable ? "Verify Logic & Behavioral Alignment // AI-Generated Output" : "Connection Lost // Re-establishing Link"}
 				</p>
 			</div>
 		</div>
