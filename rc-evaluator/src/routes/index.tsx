@@ -1,4 +1,4 @@
-import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
+import { BrowserRouter, Navigate, Route, Routes, Outlet } from "react-router-dom";
 import { ChatContainer } from "@/features/chat/components/ChatContainer";
 import { GlobalNotification } from "@/features/notifications/globalNotification";
 import { OnlineStatusChecker } from "@/features/notifications/OnlineStatusChecker";
@@ -11,7 +11,6 @@ export const AppRouter = () => {
 	return (
 		<BrowserRouter>
 			<GlobalNotification />
-			<OnlineStatusChecker />
 			<Routes>
 				{/* Public Marketing Routes */}
 				<Route element={<PublicLayout />}>
@@ -20,8 +19,17 @@ export const AppRouter = () => {
 					<Route path="/docs" element={<DocsPage />} />
 				</Route>
 
-				{/* Protected/App Routes */}
-				<Route path="/chat" element={<ChatContainer />} />
+				{/* Protected/App Routes - Gated with Status Checker */}
+				<Route
+					element={
+						<>
+							<OnlineStatusChecker />
+							<Outlet />
+						</>
+					}
+				>
+					<Route path="/chat" element={<ChatContainer />} />
+				</Route>
 
 				{/* Fallback */}
 				<Route path="*" element={<Navigate to="/" replace />} />
